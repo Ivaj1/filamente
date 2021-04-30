@@ -1,3 +1,6 @@
+#ifndef FILAMENT_COMMON_MATERIAL
+#define FILAMENT_COMMON_MATERIAL
+
 #if defined(TARGET_MOBILE)
     // min roughness such that (MIN_PERCEPTUAL_ROUGHNESS^4) > 0 in fp16 (i.e. 2^(-14/4), rounded up)
     #define MIN_PERCEPTUAL_ROUGHNESS 0.089
@@ -60,3 +63,4 @@ float3 f0ClearCoatToSurface(const float3 f0) {
     return saturate(f0 * (f0 * (0.941892 - 0.263008 * f0) + 0.346479) - 0.0285998);
 #endif
 }
+#endif // FILAMENT_COMMON_MATERIAL

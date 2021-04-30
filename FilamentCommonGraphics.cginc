@@ -1,3 +1,5 @@
+#ifndef FILAMENT_COMMON_GRAPHICS
+#define FILAMENT_COMMON_GRAPHICS
 //------------------------------------------------------------------------------
 // Common color operations
 //------------------------------------------------------------------------------
@@ -113,3 +115,4 @@ float3 uintToColorDebug(uint v) {
         return float3(0.0, 1.0, 1.0);     // cyan
     }
 }
+#endif // FILAMENT_COMMON_GRAPHICS

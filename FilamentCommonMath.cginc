@@ -1,3 +1,5 @@
+#ifndef FILAMENT_COMMON_MATH
+#define FILAMENT_COMMON_MATH
 //------------------------------------------------------------------------------
 // Common math
 //------------------------------------------------------------------------------
@@ -91,3 +93,4 @@ float acosFastPositive(float x) {
     float p = -0.1565827 * x + 1.570796;
     return p * sqrt(1.0 - x);
 }
+#endif // FILAMENT_COMMON_MATH

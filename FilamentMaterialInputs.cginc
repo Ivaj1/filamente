@@ -1,3 +1,6 @@
+#ifndef FILAMENT_MATERIAL_INPUTS
+#define FILAMENT_MATERIAL_INPUTS
+
 // Decide if we can skip lighting when dot(n, l) <= 0.0
 #if defined(SHADING_MODEL_CLOTH)
 #if !defined(MATERIAL_HAS_SUBSURFACE_COLOR)
@@ -85,6 +88,8 @@ struct MaterialInputs {
 };
 
 void initMaterial(out MaterialInputs material) {
+    material = (MaterialInputs)0;
+    
     material.baseColor = float4(1.0.xxxx);
 #if !defined(SHADING_MODEL_UNLIT)
 #if !defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
@@ -164,3 +169,5 @@ void initMaterial(out MaterialInputs material) {
 #endif
 #endif
 }
+
+#endif // FILAMENT_MATERIAL_INPUTS

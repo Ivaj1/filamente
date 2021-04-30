@@ -1,3 +1,5 @@
+#ifndef FILAMENT_COMMON_OCCLUSION
+#define FILAMENT_COMMON_OCCLUSION
 //------------------------------------------------------------------------------
 // Ambient occlusion configuration
 //------------------------------------------------------------------------------
@@ -114,3 +116,5 @@ float singleBounceAO(float visibility) {
     return visibility;
 #endif
 }
+
+#endif // FILAMENT_COMMON_OCCLUSION

@@ -1,3 +1,5 @@
+#ifndef FILAMENT_COMMON_SHADING
+#define FILAMENT_COMMON_SHADING
 /*
 // These variables should be in a struct but some GPU drivers ignore the
 // precision qualifier on individual struct members
@@ -20,7 +22,7 @@ highp float3  shading_position;         // position of the fragment in world spa
 highp float2 shading_normalizedViewportCoord;
 */
 
-// I'll worry about that problem later.
+// Worry about that problem later.
 struct ShadingParams {
 	float3x3  tangentToWorld;   // TBN matrix
 	float3  position;         // position of the fragment in world space
@@ -40,3 +42,4 @@ struct ShadingParams {
 
 	float2 normalizedViewportCoord;
 };
+#endif // FILAMENT_COMMON_SHADING 

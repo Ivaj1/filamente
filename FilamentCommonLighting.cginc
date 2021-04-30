@@ -1,3 +1,6 @@
+#ifndef FILAMENT_COMMON_LIGHTING
+#define FILAMENT_COMMON_LIGHTING
+
 struct Light {
     float4 colorIntensity;  // rgb, pre-exposed intensity
     float3 l;
@@ -63,4 +66,6 @@ float computeMicroShadowing(float NoL, float visibility) {
     float aperture = rsqrt(1.0 - visibility);
     float microShadow = saturate(NoL * aperture);
     return microShadow * microShadow;
-}
+};
+
+#endif // FILAMENT_COMMON_LIGHTING

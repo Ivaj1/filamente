@@ -1,4 +1,7 @@
 
+#ifndef FILAMENT_SHADING_STANDARD_INCLUDED
+#define FILAMENT_SHADING_STANDARD_INCLUDED
+
 #if defined(MATERIAL_HAS_SHEEN_COLOR)
 float3 sheenLobe(const PixelParams pixel, float NoV, float NoL, float NoH) {
     float D = distributionCloth(pixel.sheenRoughness, NoH);
@@ -151,3 +154,5 @@ float3 surfaceShading(const ShadingParams shading, const PixelParams pixel, cons
     return  (color * light.colorIntensity.rgb) *
             (light.colorIntensity.w * light.attenuation * NoL * occlusion);
 }
+
+#endif // FILAMENT_SHADING_STANDARD_INCLUDED

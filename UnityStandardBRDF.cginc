@@ -9,53 +9,18 @@
 
 #include "FilamentMaterialInputs.cginc"
 #include "FilamentCommonMath.cginc"
+#include "FilamentCommonLighting.cginc"
 #include "FilamentCommonMaterial.cginc"
 #include "FilamentCommonShading.cginc"
-#include "FilamentCommonLighting.cginc"
+
 #include "FilamentBRDF.cginc"
 #include "FilamentShadingStandard.cginc"
+#include "FilamentLightIndirect.cginc"
+#include "FilamentShadingLit.cginc"
+#include "FilamentLightDirectional.cginc"
 
 // Uh... Unity?
 #define LambertTerm(x,y) dot(x,y)
-
-//-----------------------------------------------------------------------------
-// Helper to convert smoothness to roughness
-//-----------------------------------------------------------------------------
-
-float PerceptualRoughnessToRoughness(float perceptualRoughness)
-{
-    return perceptualRoughness * perceptualRoughness;
-}
-
-half RoughnessToPerceptualRoughness(half roughness)
-{
-    return sqrt(roughness);
-}
-
-// Smoothness is the user facing name
-// it should be perceptualSmoothness but we don't want the user to have to deal with this name
-half SmoothnessToRoughness(half smoothness)
-{
-    return (1 - smoothness) * (1 - smoothness);
-}
-
-float SmoothnessToPerceptualRoughness(float smoothness)
-{
-    return (1 - smoothness);
-}
-
-// Cringe inducing stopgap
-
-#include "FilamentLightDirectional.cginc"
-#include "FilamentLightIndirect.cginc"
-
-//-------------------------------------------------------------------------------------
-
-inline float3 Unity_SafeNormalize(float3 inVec)
-{
-    float dp3 = max(0.001f, dot(inVec, inVec));
-    return inVec * rsqrt(dp3);
-}
 
 //-------------------------------------------------------------------------------------
 
@@ -75,12 +40,6 @@ half4 BRDF1_Unity_PBS (half3 diffColor, half3 specColor, half oneMinusReflectivi
 
     float perceptualRoughness = SmoothnessToPerceptualRoughness (smoothness);
     float roughness = PerceptualRoughnessToRoughness(perceptualRoughness);
-
-    Light fLight = (Light)0;
-    fLight.l = light.dir;
-    fLight.NoL = dot(normal, light.dir);
-    fLight.colorIntensity = float4(light.color, 1.0);
-    fLight.attenuation = 1.0;
 
 // NdotV should not be negative for visible pixels, but it can happen due to perspective projection and normal mapping
 // In this case normal should be modified to become valid (i.e facing camera) and not cause weird artifacts.
@@ -155,8 +114,48 @@ half4 BRDF1_Unity_PBS (half3 diffColor, half3 specColor, half oneMinusReflectivi
     #endif
 
     return float4(color, 1.0);
-
 }
 
+half4 BRDF_Filament_Standard (const ShadingParams shading, const MaterialInputs material,
+        const PixelParams pixel)
+{
+
+    float3 color = 0.0;
+    evaluateIBL(shading, material, pixel, color);
+    evaluateDirectionalLight(shading, material, pixel, color);
+
+    #if 0
+#   ifdef UNITY_COLORSPACE_GAMMA
+        specularTerm = sqrt(max(1e-4h, specularTerm));
+#   endif
+
+    // specularTerm * NoL can be NaN on Metal in some cases, use max() to make sure it's a sane value
+    specularTerm = max(0, specularTerm * NoL);
+#if defined(_SPECULARHIGHLIGHTS_OFF)
+    specularTerm = 0.0;
+#endif
+
+    // surfaceReduction = Int D(NdotH) * NdotH * Id(NdotL>0) dH = 1/(roughness^2+1)
+    half surfaceReduction;
+#   ifdef UNITY_COLORSPACE_GAMMA
+        surfaceReduction = 1.0-0.28*roughness*perceptualRoughness;      // 1-0.28*x^3 as approximation for (1/(x^4+1))^(1/2.2) on the domain [0;1]
+#   else
+        surfaceReduction = 1.0 / (roughness*roughness + 1.0);           // fade \in [0.5;1]
+#   endif
+
+    // To provide true Lambert lighting, we need to be able to kill specular completely.
+    specularTerm *= any(specColor) ? 1.0 : 0.0;
+
+    half grazingTerm = saturate(smoothness + (1-oneMinusReflectivity));
+    half3 color =   diffColor * (gi.diffuse + light.color * diffuseTerm)
+                    + specularTerm * light.color * FresnelTerm (specColor, LoH)
+                    + surfaceReduction * gi.specular * FresnelLerp (specColor, grazingTerm, NoV);
+
+    return half4(color, 1);
+    #endif
+
+    return float4(color, 1.0);
+
+}
 
 #endif // UNITY_STANDARD_BRDF_INCLUDED

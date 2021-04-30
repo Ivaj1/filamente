@@ -295,5 +295,38 @@ half3 CalculateSurfaceNormal(half3 position, half3 normal, half2 gradient, half2
     return PerturbNormal(normal, dpdx, dpdy, dhdx, dhdy);
 }
 
+//-----------------------------------------------------------------------------
+// Helper to convert smoothness to roughness
+//-----------------------------------------------------------------------------
+
+float PerceptualRoughnessToRoughness(float perceptualRoughness)
+{
+    return perceptualRoughness * perceptualRoughness;
+}
+
+half RoughnessToPerceptualRoughness(half roughness)
+{
+    return sqrt(roughness);
+}
+
+// Smoothness is the user facing name
+// it should be perceptualSmoothness but we don't want the user to have to deal with this name
+half SmoothnessToRoughness(half smoothness)
+{
+    return (1 - smoothness) * (1 - smoothness);
+}
+
+float SmoothnessToPerceptualRoughness(float smoothness)
+{
+    return (1 - smoothness);
+}
+
+//-------------------------------------------------------------------------------------
+
+inline float3 Unity_SafeNormalize(float3 inVec)
+{
+    float dp3 = max(0.001f, dot(inVec, inVec));
+    return inVec * rsqrt(dp3);
+}
 
 #endif // UNITY_STANDARD_UTILS_INCLUDED

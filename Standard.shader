@@ -49,6 +49,10 @@ Shader "Silent/CrossStandard"
 
     CGINCLUDE
         #define UNITY_SETUP_BRDF_INPUT MetallicSetup
+
+        // Filament crosscompatibility defined
+        // Move these later!
+        #define HAS_DIRECTIONAL_LIGHTING DIRECTIONAL
     ENDCG
 
     SubShader
@@ -89,7 +93,7 @@ Shader "Silent/CrossStandard"
 
             #pragma vertex vertBase
             #pragma fragment fragBase
-            #include "UnityStandardBRDF.cginc"
+            #include "UnityStandardBRDF.cginc" 
             #include "UnityStandardCoreForward.cginc"
 
             ENDCG
@@ -126,7 +130,6 @@ Shader "Silent/CrossStandard"
 
             #pragma vertex vertAdd
             #pragma fragment fragAdd
-            #include "UnityStandardBRDF.cginc"
             #include "UnityStandardCoreForward.cginc"
 
             ENDCG

@@ -1,4 +1,7 @@
 
+#ifndef FILAMENT_BRDF_INCLUDED
+#define FILAMENT_BRDF_INCLUDED
+
 //------------------------------------------------------------------------------
 // BRDF configuration
 //------------------------------------------------------------------------------
@@ -247,3 +250,5 @@ float diffuse(float roughness, float NoV, float NoL, float LoH) {
     return Fd_Burley(roughness, NoV, NoL, LoH);
 #endif
 }
+
+#endif // FILAMENT_BRDF_INCLUDED

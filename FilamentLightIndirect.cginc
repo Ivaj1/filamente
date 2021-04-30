@@ -1,6 +1,8 @@
+#ifndef FILAMENT_LIGHT_INDIRECT
+#define FILAMENT_LIGHT_INDIRECT
 
 #include "FilamentCommonOcclusion.cginc"
-#include "UnityImageBasedLighting.cginc"
+#include "UnityImageBasedLightingMinimal.cginc"
 #include "UnityStandardUtils.cginc"
 
 //------------------------------------------------------------------------------
@@ -18,6 +20,28 @@
 
 #define IBL_INTEGRATION_IMPORTANCE_SAMPLING_COUNT   64
 
+
+//------------------------------------------------------------------------------
+// IBL prefiltered DFG term implementations
+//------------------------------------------------------------------------------
+
+float3 PrefilteredDFG_LUT(float lod, float NoV) {
+    // coord = sqrt(linear_roughness), which is the mapping used by cmgen.
+    //return textureLod(light_iblDFG, vec2(NoV, lod), 0.0).rgb;
+    // Not supported!
+    return 1.0; 
+}
+
+//------------------------------------------------------------------------------
+// IBL environment BRDF dispatch
+//------------------------------------------------------------------------------
+
+float3 prefilteredDFG(float perceptualRoughness, float NoV) {
+    // PrefilteredDFG_LUT() takes a LOD, which is sqrt(roughness) = perceptualRoughness
+    //return PrefilteredDFG_LUT(perceptualRoughness, NoV);
+    // Not supported!
+    return 1.0;
+}
 //------------------------------------------------------------------------------
 // IBL irradiance implementations
 //------------------------------------------------------------------------------
@@ -390,3 +414,5 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     // Note: iblLuminance is already premultiplied by the exposure
     combineDiffuseAndSpecular(pixel, shading.normal, E, Fd, Fr, color);
 }
+
+#endif // FILAMENT_LIGHT_INDIRECT

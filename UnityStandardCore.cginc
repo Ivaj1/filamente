@@ -5,12 +5,28 @@
 
 #include "UnityCG.cginc"
 #include "UnityShaderVariables.cginc"
+
+#include "FilamentMaterialInputs.cginc"
+#include "FilamentCommonMath.cginc"
+#include "FilamentCommonLighting.cginc"
+#include "FilamentCommonMaterial.cginc"
+#include "FilamentCommonShading.cginc"
+
 #include "UnityStandardConfig.cginc"
 #include "UnityStandardInput.cginc"
 #include "UnityPBSLighting.cginc"
 #include "UnityStandardUtils.cginc"
 #include "UnityGBuffer.cginc"
-#include "UnityStandardBRDF.cginc"
+
+#include "FilamentLightIndirect.cginc"
+
+#include "FilamentBRDF.cginc"
+#include "FilamentShadingLit.cginc"
+#include "FilamentShadingStandard.cginc"
+
+#include "FilamentLightDirectional.cginc"
+
+#include "UnityStandardBRDF.cginc" 
 
 #include "AutoLight.cginc"
 //-------------------------------------------------------------------------------------
@@ -412,8 +428,61 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     half occlusion = Occlusion(i.tex.xy);
     UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
 
-    half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect);
-    c.rgb += Emission(i.tex.xy);
+    /*
+    float3 h = normalize(shading_view + light.l);
+
+    float NoV = shading_NoV;
+    float NoL = saturate(light.NoL);
+    float NoH = saturate(dot(shading_normal, h));
+    float LoH = saturate(dot(light.l, h));
+    */
+
+    float perceptualRoughness = computeRoughnessFromGlossiness (s.smoothness);
+    float roughness = perceptualRoughnessToRoughness(perceptualRoughness);
+    float3 viewDir = -s.eyeVec;
+
+// NdotV should not be negative for visible pixels, but it can happen due to perspective projection and normal mapping
+// In this case normal should be modified to become valid (i.e facing camera) and not cause weird artifacts.
+// but this operation adds few ALU and users may not want it. Alternative is to simply take the abs of NdotV (less correct but works too).
+// Following define allow to control this. Set it to 0 if ALU is critical on your platform.
+// This correction is interesting for GGX with SmithJoint visibility function because artifacts are more visible in this case due to highlight edge of rough surface
+// Edit: Disable this code by default for now as it is not compatible with two sided lighting used in SpeedTree.
+#define UNITY_HANDLE_CORRECTLY_NEGATIVE_NDOTV 0
+
+#if UNITY_HANDLE_CORRECTLY_NEGATIVE_NDOTV
+    // The amount we shift the normal toward the view vector is defined by the dot product.
+    half shiftAmount = dot(normal, viewDir);
+    normal = shiftAmount < 0.0f ? normal + viewDir * (-shiftAmount + 1e-5f) : normal;
+    // A re-normalization should be applied here but as the shift is small we don't do it to save ALU.
+    //normal = normalize(normal);
+
+    float NoV = saturate(dot(s.normalWorld, viewDir)); // TODO: this saturate should no be necessary here
+#else
+    half NoV = abs(dot(s.normalWorld, viewDir));    // This abs allow to limit artifact
+#endif
+
+    // Stopgap
+    PixelParams pixel = (PixelParams)0;
+    pixel.diffuseColor = s.diffColor;
+    pixel.roughness = roughness;
+    pixel.f0 = 1.0;
+    pixel.energyCompensation = 1.0;
+
+    ShadingParams shading = (ShadingParams)0;
+    shading.view = viewDir;
+    shading.position = s.posWorld;
+    shading.NoV = NoV;
+    shading.normal = s.normalWorld;
+    shading.reflected = -reflect(viewDir, s.normalWorld);
+
+    MaterialInputs material = (MaterialInputs)0;
+    initMaterial(material);
+    material.ambientOcclusion = occlusion;
+
+    //half4 c = BRDF_Filament_Standard (shading, material, pixel);
+    //c.rgb += Emission(i.tex.xy);
+
+    float4 c = evaluateMaterial (shading, material);
 
     UNITY_EXTRACT_FOG_FROM_EYE_VEC(i);
     UNITY_APPLY_FOG(_unity_fogCoord, c.rgb);

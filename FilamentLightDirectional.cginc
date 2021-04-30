@@ -1,3 +1,5 @@
+#ifndef FILAMENT_LIGHT_DIRECTIONAL
+#define FILAMENT_LIGHT_DIRECTIONAL
 //------------------------------------------------------------------------------
 // Directional light evaluation
 //------------------------------------------------------------------------------
@@ -78,3 +80,5 @@ void evaluateDirectionalLight(const ShadingParams shading, const MaterialInputs 
 
     color.rgb += surfaceShading(shading, pixel, light, visibility);
 }
+
+#endif // FILAMENT_LIGHT_DIRECTIONAL
