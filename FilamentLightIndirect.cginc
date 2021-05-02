@@ -4,6 +4,7 @@
 #include "FilamentCommonOcclusion.cginc"
 #include "UnityImageBasedLightingMinimal.cginc"
 #include "UnityStandardUtils.cginc"
+#include "UnityLightingCommon.cginc"
 
 //------------------------------------------------------------------------------
 // Image based lighting configuration
@@ -29,7 +30,7 @@ float3 PrefilteredDFG_LUT(float lod, float NoV) {
     // coord = sqrt(linear_roughness), which is the mapping used by cmgen.
     //return textureLod(light_iblDFG, vec2(NoV, lod), 0.0).rgb;
     // Not supported!
-    return 1.0; 
+    return float3(1.0, 0.0, 0.0); 
 }
 
 //------------------------------------------------------------------------------
@@ -38,10 +39,21 @@ float3 PrefilteredDFG_LUT(float lod, float NoV) {
 
 float3 prefilteredDFG(float perceptualRoughness, float NoV) {
     // PrefilteredDFG_LUT() takes a LOD, which is sqrt(roughness) = perceptualRoughness
+    // Not supported yet!
     //return PrefilteredDFG_LUT(perceptualRoughness, NoV);
-    // Not supported!
-    return 1.0;
+    #if 1
+    // Karis' approximation based on Lazarov's
+    const float4 c0 = float4(-1.0, -0.0275, -0.572,  0.022);
+    const float4 c1 = float4( 1.0,  0.0425,  1.040, -0.040);
+    float4 r = perceptualRoughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28 * NoV)) * r.x + r.y;
+    return (float3(float2(-1.04, 1.04) * a004 + r.zw, 0.0));
+    #else
+    // Zioma's approximation based on Karis
+    return float3(float2(1.0, pow(1.0 - max(perceptualRoughness, NoV), 3.0)), 0.0);
+    #endif
 }
+
 //------------------------------------------------------------------------------
 // IBL irradiance implementations
 //------------------------------------------------------------------------------
@@ -209,11 +221,15 @@ float3 getSpecularDominantDirection(const float3 n, const float3 r, float roughn
 }
 
 float3 specularDFG(const PixelParams pixel) {
+    /*
 #if defined(SHADING_MODEL_CLOTH)
     return pixel.f0 * pixel.dfg.z;
 #else
     return lerp(pixel.dfg.xxx, pixel.dfg.yyy, pixel.f0);
 #endif
+    */
+    // Disabled until useable
+    return pixel.f0;
 }
 
 /**
@@ -336,17 +352,6 @@ void evaluateClearCoatIBL(const PixelParams pixel, float specularAO, inout float
 #endif
 }
 
-void combineDiffuseAndSpecular(const PixelParams pixel,
-        const float3 n, const float3 E, const float3 Fd, const float3 Fr,
-        inout float3 color) {
-    const float iblLuminance = 1.0; // Unknown
-#if defined(HAS_REFRACTION)
-    applyRefraction(pixel, n, E, Fd, Fr, color);
-#else
-    color.rgb += (Fd + Fr) * iblLuminance;
-#endif
-}
-
 void evaluateSubsurfaceIBL(const PixelParams pixel, const float3 diffuseIrradiance,
         inout float3 Fd, inout float3 Fr) {
 #if defined(SHADING_MODEL_SUBSURFACE)
@@ -356,6 +361,17 @@ void evaluateSubsurfaceIBL(const PixelParams pixel, const float3 diffuseIrradian
     Fd += pixel.subsurfaceColor * (viewIndependent + viewDependent) * attenuation;
 #elif defined(SHADING_MODEL_CLOTH) && defined(MATERIAL_HAS_SUBSURFACE_COLOR)
     Fd *= saturate(pixel.subsurfaceColor + shading_NoV);
+#endif
+}
+
+void combineDiffuseAndSpecular(const PixelParams pixel,
+        const float3 n, const float3 E, const float3 Fd, const float3 Fr,
+        inout float3 color) {
+    const float iblLuminance = 1.0; // Unknown
+#if defined(HAS_REFRACTION)
+    applyRefraction(pixel, n, E, Fd, Fr, color);
+#else
+    color.rgb += (Fd + Fr) * iblLuminance;
 #endif
 }
 
@@ -376,7 +392,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 #elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
     // Not supported
     float3 E = float3(0.0); // TODO: fix for importance sampling
-    //Fr = isEvaluateSpecularIBL(pixel, shading.normal, shading.view, shading.NoV);
+    Fr = isEvaluateSpecularIBL(pixel, shading.normal, shading.view, shading.NoV);
 #endif
     Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
 
@@ -396,6 +412,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 #elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
     float3 diffuseIrradiance = isEvaluateDiffuseIBL(pixel, diffuseNormal, shading.view);
 #endif
+
     float3 Fd = pixel.diffuseColor * diffuseIrradiance * (1.0 - E) * diffuseBRDF;
 
     // sheen layer

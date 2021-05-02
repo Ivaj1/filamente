@@ -295,6 +295,7 @@ half3 CalculateSurfaceNormal(half3 position, half3 normal, half2 gradient, half2
     return PerturbNormal(normal, dpdx, dpdy, dhdx, dhdy);
 }
 
+#ifndef UNITY_STANDARD_BRDF_INCLUDED
 //-----------------------------------------------------------------------------
 // Helper to convert smoothness to roughness
 //-----------------------------------------------------------------------------
@@ -328,5 +329,10 @@ inline float3 Unity_SafeNormalize(float3 inVec)
     float dp3 = max(0.001f, dot(inVec, inVec));
     return inVec * rsqrt(dp3);
 }
+#endif // UNITY_STANDARD_BRDF_INCLUDED
+
+
+// Uh... Unity?
+#define LambertTerm(x,y) dot(x,y)
 
 #endif // UNITY_STANDARD_UTILS_INCLUDED

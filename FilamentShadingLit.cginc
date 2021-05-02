@@ -54,13 +54,13 @@ float normalFiltering(float perceptualRoughness, const float3 worldNormal) {
     // approximation but it works well enough for our needs and provides an improvement
     // over our original implementation based on Vlachos 2015, "Advanced VR Rendering".
 
-    float3 du = dFdx(worldNormal);
-    float3 dv = dFdy(worldNormal);
+    float3 du = ddx(worldNormal);
+    float3 dv = ddy(worldNormal);
 
-    float variance = materialParams._specularAntiAliasingVariance * (dot(du, du) + dot(dv, dv));
+    float variance = _specularAntiAliasingVariance * (dot(du, du) + dot(dv, dv));
 
     float roughness = perceptualRoughnessToRoughness(perceptualRoughness);
-    float kernelRoughness = min(2.0 * variance, materialParams._specularAntiAliasingThreshold);
+    float kernelRoughness = min(2.0 * variance, _specularAntiAliasingThreshold);
     float squareRoughness = saturate(roughness * roughness + kernelRoughness);
 
     return roughnessToPerceptualRoughness(sqrt(squareRoughness));
@@ -143,7 +143,7 @@ void getCommonPixelParams(const MaterialInputs material, inout PixelParams pixel
 #endif
 }
 
-void getSheenPixelParams(const MaterialInputs material, inout PixelParams pixel) {
+void getSheenPixelParams(const ShadingParams shading, const MaterialInputs material, inout PixelParams pixel) {
 #if defined(MATERIAL_HAS_SHEEN_COLOR) && !defined(SHADING_MODEL_CLOTH) && !defined(SHADING_MODEL_SUBSURFACE)
     pixel.sheenColor = material.sheenColor;
 
@@ -152,7 +152,7 @@ void getSheenPixelParams(const MaterialInputs material, inout PixelParams pixel)
 
 #if defined(GEOMETRIC_SPECULAR_AA)
     sheenPerceptualRoughness =
-            normalFiltering(sheenPerceptualRoughness, getWorldGeometricNormalVector());
+            normalFiltering(sheenPerceptualRoughness, shading.geometricNormal);
 #endif
 
     pixel.sheenPerceptualRoughness = sheenPerceptualRoughness;
@@ -160,7 +160,7 @@ void getSheenPixelParams(const MaterialInputs material, inout PixelParams pixel)
 #endif
 }
 
-void getClearCoatPixelParams(const MaterialInputs material, inout PixelParams pixel) {
+void getClearCoatPixelParams(const ShadingParams shading, const MaterialInputs material, inout PixelParams pixel) {
 #if defined(MATERIAL_HAS_CLEAR_COAT)
     pixel.clearCoat = material.clearCoat;
 
@@ -171,7 +171,7 @@ void getClearCoatPixelParams(const MaterialInputs material, inout PixelParams pi
 
 #if defined(GEOMETRIC_SPECULAR_AA)
     clearCoatPerceptualRoughness =
-            normalFiltering(clearCoatPerceptualRoughness, getWorldGeometricNormalVector());
+            normalFiltering(clearCoatPerceptualRoughness, shading.geometricNormal);
 #endif
 
     pixel.clearCoatPerceptualRoughness = clearCoatPerceptualRoughness;
@@ -187,7 +187,7 @@ void getClearCoatPixelParams(const MaterialInputs material, inout PixelParams pi
 #endif
 }
 
-void getRoughnessPixelParams(const MaterialInputs material, inout PixelParams pixel) {
+void getRoughnessPixelParams(const ShadingParams shading, const MaterialInputs material, inout PixelParams pixel) {
 #if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
     float perceptualRoughness = computeRoughnessFromGlossiness(material.glossiness);
 #else
@@ -198,7 +198,7 @@ void getRoughnessPixelParams(const MaterialInputs material, inout PixelParams pi
     pixel.perceptualRoughnessUnclamped = perceptualRoughness;
 
 #if defined(GEOMETRIC_SPECULAR_AA)
-    perceptualRoughness = normalFiltering(perceptualRoughness, getWorldGeometricNormalVector());
+    perceptualRoughness = normalFiltering(perceptualRoughness, shading.geometricNormal);
 #endif
 
 #if defined(MATERIAL_HAS_CLEAR_COAT) && defined(MATERIAL_HAS_CLEAR_COAT_ROUGHNESS)
@@ -223,12 +223,12 @@ void getSubsurfacePixelParams(const MaterialInputs material, inout PixelParams p
 #endif
 }
 
-void getAnisotropyPixelParams(const MaterialInputs material, inout PixelParams pixel) {
+void getAnisotropyPixelParams(const ShadingParams shading, const MaterialInputs material, inout PixelParams pixel) {
 #if defined(MATERIAL_HAS_ANISOTROPY)
     float3 direction = material.anisotropyDirection;
     pixel.anisotropy = material.anisotropy;
     pixel.anisotropicT = normalize(shading.tangentToWorld * direction);
-    pixel.anisotropicB = normalize(cross(getWorldGeometricNormalVector(), pixel.anisotropicT));
+    pixel.anisotropicB = normalize(cross(shading.geometricNormal, pixel.anisotropicT));
 #endif
 }
 
@@ -239,9 +239,11 @@ void getEnergyCompensationPixelParams(const ShadingParams shading, inout PixelPa
 #if !defined(SHADING_MODEL_CLOTH)
     // Energy compensation for multiple scattering in a microfacet model
     // See "Multiple-Scattering Microfacet BSDFs with the Smith Model"
-    pixel.energyCompensation = 1.0 + pixel.f0 * (1.0 / pixel.dfg.y - 1.0);
+    // Disabled until DFG is set
+    //pixel.energyCompensation = 1.0 + pixel.f0 * (1.0 / pixel.dfg.y - 1.0);
+    pixel.energyCompensation = (1.0);
 #else
-    pixel.energyCompensation = float3(1.0);
+    pixel.energyCompensation = (1.0);
 #endif
 
 #if !defined(SHADING_MODEL_CLOTH)
@@ -263,11 +265,11 @@ void getEnergyCompensationPixelParams(const ShadingParams shading, inout PixelPa
 void getPixelParams(const ShadingParams shading, const MaterialInputs material, out PixelParams pixel) {
     pixel = (PixelParams)0;
     getCommonPixelParams(material, pixel);
-    getSheenPixelParams(material, pixel);
-    getClearCoatPixelParams(material, pixel);
-    getRoughnessPixelParams(material, pixel);
+    getSheenPixelParams(shading, material, pixel);
+    getClearCoatPixelParams(shading, material, pixel);
+    getRoughnessPixelParams(shading, material, pixel);
     getSubsurfacePixelParams(material, pixel);
-    getAnisotropyPixelParams(material, pixel);
+    getAnisotropyPixelParams(shading, material, pixel);
     getEnergyCompensationPixelParams(shading, pixel);
 }
 
@@ -313,8 +315,10 @@ float4 evaluateLights(const ShadingParams shading, const MaterialInputs material
 
 void addEmissive(const MaterialInputs material, inout float4 color) {
 #if defined(MATERIAL_HAS_EMISSIVE)
-    highp float4 emissive = material.emissive;
-    highp float attenuation = lerp(1.0, frameUniforms.exposure, emissive.w);
+    float4 emissive = material.emissive;
+    //float attenuation = lerp(1.0, frameUniforms.exposure, emissive.w);
+    // Exposure not supported yet
+    float attenuation = emissive.w;
     color.rgb += emissive.rgb * (attenuation * color.a);
 #endif
 }

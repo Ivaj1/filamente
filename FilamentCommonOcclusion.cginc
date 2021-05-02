@@ -93,7 +93,7 @@ float3 gtaoMultiBounce(float visibility, const float3 albedo) {
     float3 b = -4.7951 * albedo + 0.6417;
     float3 c =  2.7552 * albedo + 0.6903;
 
-    return max(float3(visibility), ((visibility * a + b) * visibility + c) * visibility);
+    return max((visibility), ((visibility * a + b) * visibility + c) * visibility);
 }
 #endif
 

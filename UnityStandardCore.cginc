@@ -5,18 +5,24 @@
 
 #include "UnityCG.cginc"
 #include "UnityShaderVariables.cginc"
+#include "UnityLightingCommon.cginc"
+
+#define UNITY_BRDF_PBS 
 
 #include "FilamentMaterialInputs.cginc"
 #include "FilamentCommonMath.cginc"
 #include "FilamentCommonLighting.cginc"
 #include "FilamentCommonMaterial.cginc"
 #include "FilamentCommonShading.cginc"
+#include "FilamentShadingParameters.cginc"
 
 #include "UnityStandardConfig.cginc"
 #include "UnityStandardInput.cginc"
-#include "UnityPBSLighting.cginc"
+//#include "UnityPBSLighting.cginc"
 #include "UnityStandardUtils.cginc"
+#include "UnityImageBasedLightingMinimal.cginc"
 #include "UnityGBuffer.cginc"
+#include "UnityGlobalIllumination.cginc"
 
 #include "FilamentLightIndirect.cginc"
 
@@ -26,7 +32,6 @@
 
 #include "FilamentLightDirectional.cginc"
 
-#include "UnityStandardBRDF.cginc" 
 
 #include "AutoLight.cginc"
 //-------------------------------------------------------------------------------------
@@ -185,10 +190,11 @@ inline FragmentCommonData SpecularSetup (float4 i_tex)
     half smoothness = specGloss.a;
 
     half oneMinusReflectivity;
+    // Handled by Filament code
     half3 diffColor = EnergyConservationBetweenDiffuseAndSpecular (Albedo(i_tex), specColor, /*out*/ oneMinusReflectivity);
 
     FragmentCommonData o = (FragmentCommonData)0;
-    o.diffColor = diffColor;
+    o.diffColor = Albedo(i_tex);
     o.specColor = specColor;
     o.oneMinusReflectivity = oneMinusReflectivity;
     o.smoothness = smoothness;
@@ -206,7 +212,7 @@ inline FragmentCommonData RoughnessSetup(float4 i_tex)
     half3 diffColor = DiffuseAndSpecularFromMetallic(Albedo(i_tex), metallic, /*out*/ specColor, /*out*/ oneMinusReflectivity);
 
     FragmentCommonData o = (FragmentCommonData)0;
-    o.diffColor = diffColor;
+    o.diffColor = Albedo(i_tex);
     o.specColor = specColor;
     o.oneMinusReflectivity = oneMinusReflectivity;
     o.smoothness = smoothness;
@@ -224,7 +230,7 @@ inline FragmentCommonData MetallicSetup (float4 i_tex)
     half3 diffColor = DiffuseAndSpecularFromMetallic (Albedo(i_tex), metallic, /*out*/ specColor, /*out*/ oneMinusReflectivity);
 
     FragmentCommonData o = (FragmentCommonData)0;
-    o.diffColor = diffColor;
+    o.diffColor = Albedo(i_tex);
     o.specColor = specColor;
     o.oneMinusReflectivity = oneMinusReflectivity;
     o.smoothness = smoothness;
@@ -428,17 +434,6 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     half occlusion = Occlusion(i.tex.xy);
     UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
 
-    /*
-    float3 h = normalize(shading_view + light.l);
-
-    float NoV = shading_NoV;
-    float NoL = saturate(light.NoL);
-    float NoH = saturate(dot(shading_normal, h));
-    float LoH = saturate(dot(light.l, h));
-    */
-
-    float perceptualRoughness = computeRoughnessFromGlossiness (s.smoothness);
-    float roughness = perceptualRoughnessToRoughness(perceptualRoughness);
     float3 viewDir = -s.eyeVec;
 
 // NdotV should not be negative for visible pixels, but it can happen due to perspective projection and normal mapping
@@ -456,31 +451,38 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     // A re-normalization should be applied here but as the shift is small we don't do it to save ALU.
     //normal = normalize(normal);
 
-    float NoV = saturate(dot(s.normalWorld, viewDir)); // TODO: this saturate should no be necessary here
+    float NoV = clampNoV(dot(s.normalWorld, viewDir)); // TODO: this saturate should no be necessary here
 #else
     half NoV = abs(dot(s.normalWorld, viewDir));    // This abs allow to limit artifact
 #endif
 
     // Stopgap
-    PixelParams pixel = (PixelParams)0;
-    pixel.diffuseColor = s.diffColor;
-    pixel.roughness = roughness;
-    pixel.f0 = 1.0;
-    pixel.energyCompensation = 1.0;
-
-    ShadingParams shading = (ShadingParams)0;
-    shading.view = viewDir;
-    shading.position = s.posWorld;
-    shading.NoV = NoV;
-    shading.normal = s.normalWorld;
-    shading.reflected = -reflect(viewDir, s.normalWorld);
 
     MaterialInputs material = (MaterialInputs)0;
     initMaterial(material);
+    material.baseColor = float4(s.diffColor.xyz, s.alpha);
+    material.glossiness = s.smoothness;
+    material.specularColor = s.specColor;
     material.ambientOcclusion = occlusion;
+    material.emissive = float4(Emission(i.tex.xy), 1.0);
+    //material.normal = ; tangent-space normal
 
+    ShadingParams shading = (ShadingParams)0;
+    prepareMaterial(shading, material);
+    // shading.tangentToWorld
+    shading.position = s.posWorld;
+    shading.view = viewDir;
+    shading.normal = s.normalWorld;
+    shading.geometricNormal = s.normalWorld;
+    shading.reflected = -reflect(viewDir, s.normalWorld);
+    shading.NoV = NoV;
+    // shading.bentNormal
+    // shading.clearCoatNormal
+    // shading.normalizedViewportCoord
+
+
+    //half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, gi);
     //half4 c = BRDF_Filament_Standard (shading, material, pixel);
-    //c.rgb += Emission(i.tex.xy);
 
     float4 c = evaluateMaterial (shading, material);
 
@@ -572,7 +574,7 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
     UnityLight light = AdditiveLight (IN_LIGHTDIR_FWDADD(i), atten);
     UnityIndirect noIndirect = ZeroIndirect ();
 
-    half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, noIndirect);
+    half4 c = 0;//UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, noIndirect);
 
     UNITY_EXTRACT_FOG_FROM_EYE_VEC(i);
     UNITY_APPLY_FOG_COLOR(_unity_fogCoord, c.rgb, half4(0,0,0,0)); // fog towards black in additive pass
@@ -702,7 +704,7 @@ void fragDeferred (
 
     UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, dummyLight, sampleReflectionsInDeferred);
 
-    half3 emissiveColor = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect).rgb;
+    half3 emissiveColor = 0;//UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect).rgb;
 
     #ifdef _EMISSION
         emissiveColor += Emission (i.tex.xy);

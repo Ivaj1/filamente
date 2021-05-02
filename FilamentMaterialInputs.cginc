@@ -89,8 +89,8 @@ struct MaterialInputs {
 
 void initMaterial(out MaterialInputs material) {
     material = (MaterialInputs)0;
-    
-    material.baseColor = float4(1.0.xxxx);
+
+    material.baseColor = 1.0;
 #if !defined(SHADING_MODEL_UNLIT)
 #if !defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
     material.roughness = 1.0;

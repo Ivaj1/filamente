@@ -5,7 +5,6 @@
 
 #include "UnityCG.cginc"
 #include "UnityStandardConfig.cginc"
-#include "UnityPBSLighting.cginc" // TBD: remove
 #include "UnityStandardUtils.cginc"
 
 //---------------------------------------

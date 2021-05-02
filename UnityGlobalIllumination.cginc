@@ -187,4 +187,16 @@ inline half3 UnityGI_IndirectSpecular(UnityGIInput data, half occlusion, Unity_G
     return specular * occlusion;
 }
 
+inline UnityGI UnityGlobalIllumination (UnityGIInput data, half occlusion, half3 normalWorld)
+{
+    return UnityGI_Base(data, occlusion, normalWorld);
+}
+
+inline UnityGI UnityGlobalIllumination (UnityGIInput data, half occlusion, half3 normalWorld, Unity_GlossyEnvironmentData glossIn)
+{
+    UnityGI o_gi = UnityGI_Base(data, occlusion, normalWorld);
+    o_gi.indirect.specular = UnityGI_IndirectSpecular(data, occlusion, glossIn);
+    return o_gi;
+}
+
 #endif

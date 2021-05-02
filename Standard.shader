@@ -53,6 +53,15 @@ Shader "Silent/CrossStandard"
         // Filament crosscompatibility defined
         // Move these later!
         #define HAS_DIRECTIONAL_LIGHTING DIRECTIONAL
+        #define MATERIAL_HAS_EMISSIVE _EMISSION
+
+        #define SHADING_MODEL_SPECULAR_GLOSSINESS
+        
+        #define SPECULAR_AMBIENT_OCCLUSION SPECULAR_AO_SIMPLE
+        #define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
+        #define GEOMETRIC_SPECULAR_AA
+        const float _specularAntiAliasingVariance = 0.25;
+        const float _specularAntiAliasingThreshold = 0.25;
     ENDCG
 
     SubShader
@@ -75,15 +84,15 @@ Shader "Silent/CrossStandard"
 
             // -------------------------------------
 
-            #pragma shader_feature_local _NORMALMAP
-            #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-            #pragma shader_feature_fragment _EMISSION
-            #pragma shader_feature_local _METALLICGLOSSMAP
-            #pragma shader_feature_local_fragment _DETAIL_MULX2
-            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
-            #pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
-            #pragma shader_feature_local_fragment _GLOSSYREFLECTIONS_OFF
-            #pragma shader_feature_local _PARALLAXMAP
+            #pragma shader_feature _NORMALMAP
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature _EMISSION
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _DETAIL_MULX2
+            #pragma shader_feature _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature _GLOSSYREFLECTIONS_OFF
+            #pragma shader_feature _PARALLAXMAP
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
@@ -93,11 +102,11 @@ Shader "Silent/CrossStandard"
 
             #pragma vertex vertBase
             #pragma fragment fragBase
-            #include "UnityStandardBRDF.cginc" 
             #include "UnityStandardCoreForward.cginc"
 
             ENDCG
         }
+        /*
         // ------------------------------------------------------------------
         //  Additive forward pass (one light per pass)
         Pass
@@ -164,7 +173,7 @@ Shader "Silent/CrossStandard"
 
             ENDCG
         }
-
+*/
         UsePass "Standard/DEFERRED"
         UsePass "Standard/META"
 
