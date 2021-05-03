@@ -87,6 +87,54 @@ float3 Irradiance_RoughnessOne(const float3 n) {
 }
 */
 
+// Return light probes or lightmap.
+float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal )
+{
+    float3 irradiance = shading.ambient;
+
+    #if UNITY_SHOULD_SAMPLE_SH
+        irradiance = ShadeSHPerPixel(diffuseNormal, shading.ambient, shading.position);
+    #endif
+
+    #if defined(LIGHTMAP_ON)
+        // Baked lightmaps
+        half4 bakedColorTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, shading.lightmapUV.xy);
+        half3 bakedColor = DecodeLightmap(bakedColorTex);
+
+        #ifdef DIRLIGHTMAP_COMBINED
+            fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, shading.lightmapUV.xy);
+            irradiance += DecodeDirectionalLightmap (bakedColor, bakedDirTex, diffuseNormal);
+
+            #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
+                irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, diffuseNormal);
+            #endif
+
+        #else // not directional lightmap
+            irradiance += bakedColor;
+
+            #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
+                irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap(irradiance, shading.attenuation, bakedColorTex, diffuseNormal);
+            #endif
+
+        #endif
+    #endif
+
+    #ifdef DYNAMICLIGHTMAP_ON
+        // Dynamic lightmaps
+        fixed4 realtimeColorTex = UNITY_SAMPLE_TEX2D(unity_DynamicLightmap, shading.lightmapUV.zw);
+        half3 realtimeColor = DecodeRealtimeLightmap (realtimeColorTex);
+
+        #ifdef DIRLIGHTMAP_COMBINED
+            half4 realtimeDirTex = UNITY_SAMPLE_TEX2D_SAMPLER(unity_DynamicDirectionality, unity_DynamicLightmap, shading.lightmapUV.zw);
+            irradiance += DecodeDirectionalLightmap (realtimeColor, realtimeDirTex, diffuseNormal);
+        #else
+            irradiance += realtimeColor;
+        #endif
+    #endif
+
+    return irradiance;
+}
+
 //------------------------------------------------------------------------------
 // IBL irradiance dispatch
 //------------------------------------------------------------------------------
@@ -413,7 +461,8 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 #endif
 
 #if IBL_INTEGRATION == IBL_INTEGRATION_PREFILTERED_CUBEMAP
-    float3 diffuseIrradiance = get_diffuseIrradiance(diffuseNormal);
+    //float3 diffuseIrradiance = get_diffuseIrradiance(diffuseNormal);
+    float3 diffuseIrradiance = UnityGI_Irradiance(shading, diffuseNormal);
 #elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
     float3 diffuseIrradiance = isEvaluateDiffuseIBL(pixel, diffuseNormal, shading.view);
 #endif

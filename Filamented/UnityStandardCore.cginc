@@ -436,7 +436,7 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
 
     #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
-    GetBakedAttenuation(atten, i_ambientOrLightmapUV.xy, s.posWorld);
+    GetBakedAttenuation(atten, i.ambientOrLightmapUV.xy, s.posWorld);
     #endif
 
     half occlusion = Occlusion(i.tex.xy);
