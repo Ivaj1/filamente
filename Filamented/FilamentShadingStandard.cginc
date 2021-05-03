@@ -114,7 +114,7 @@ float3 surfaceShading(const ShadingParams shading, const PixelParams pixel, cons
     float LoH = saturate(dot(light.l, h));
 
     float3 Fr = specularLobe(shading, pixel, light, h, NoV, NoL, NoH, LoH) * PI;
-    float3 Fd = diffuseLobe(pixel, NoV, NoL, NoH) * PI * NoL;
+    float3 Fd = diffuseLobe(pixel, NoV, NoL, NoH) * PI;
 
 #if defined(HAS_REFRACTION)
     Fd *= (1.0 - pixel.transmission);
