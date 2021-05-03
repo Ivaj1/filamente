@@ -41,5 +41,11 @@ struct ShadingParams {
 #endif
 
 	float2 normalizedViewportCoord;
+
+  // These parameters are provided to inject Unity lighting into Filament data. 
+  float attenuation;
+  float3 ambient;
+  float4 lightmapUV;
+
 };
 #endif // FILAMENT_COMMON_SHADING 

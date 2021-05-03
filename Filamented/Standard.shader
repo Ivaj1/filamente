@@ -1,6 +1,6 @@
 // Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
 
-Shader "Silent/CrossStandard"
+Shader "Silent/Filamented"
 {
     Properties
     {
@@ -54,14 +54,27 @@ Shader "Silent/CrossStandard"
         // Move these later!
         #define HAS_DIRECTIONAL_LIGHTING DIRECTIONAL
         #define MATERIAL_HAS_EMISSIVE _EMISSION
+        #define MATERIAL_HAS_AMBIENT_OCCLUSION 
+        #define HAS_SHADOWING SHADOWS_SCREEN
 
+        // #define MATERIAL_HAS_ANISOTROPY
+        // #define MATERIAL_HAS_CLEAR_COAT
+
+        // Sheen/subsurface depend on cloth/subsurface shading
+
+        // Specular Glossiness is used because it lines up with what 
+        // Standard shader's FragmentSetup produces. 
+        // However, FragmentSetup should be replaced with MaterialSetup later. 
         #define SHADING_MODEL_SPECULAR_GLOSSINESS
+
+        #define HAS_ATTRIBUTE_TANGENTS _NORMALMAP
+        #define MATERIAL_HAS_NORMAL _NORMALMAP
         
         #define SPECULAR_AMBIENT_OCCLUSION SPECULAR_AO_SIMPLE
         #define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
         #define GEOMETRIC_SPECULAR_AA
-        const float _specularAntiAliasingVariance = 0.25;
-        const float _specularAntiAliasingThreshold = 0.25;
+        static const float _specularAntiAliasingVariance = 0.25;
+        static const float _specularAntiAliasingThreshold = 0.25;
     ENDCG
 
     SubShader
@@ -106,7 +119,6 @@ Shader "Silent/CrossStandard"
 
             ENDCG
         }
-        /*
         // ------------------------------------------------------------------
         //  Additive forward pass (one light per pass)
         Pass
@@ -173,7 +185,6 @@ Shader "Silent/CrossStandard"
 
             ENDCG
         }
-*/
         UsePass "Standard/DEFERRED"
         UsePass "Standard/META"
 

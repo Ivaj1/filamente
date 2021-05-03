@@ -12,11 +12,12 @@ float3 sheenLobe(const PixelParams pixel, float NoV, float NoL, float NoH) {
 #endif
 
 #if defined(MATERIAL_HAS_CLEAR_COAT)
-float clearCoatLobe(const PixelParams pixel, const float3 h, float NoH, float LoH, out float Fcc) {
+float clearCoatLobe(const ShadingParams shading, const PixelParams pixel, 
+    const float3 h, float NoH, float LoH, out float Fcc) {
 #if defined(MATERIAL_HAS_NORMAL) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL)
     // If the material has a normal map, we want to use the geometric normal
     // instead to avoid applying the normal map details to the clear coat layer
-    float clearCoatNoH = saturate(dot(shading_clearCoatNormal, h));
+    float clearCoatNoH = saturate(dot(shading.clearCoatNormal, h));
 #else
     float clearCoatNoH = NoH;
 #endif
@@ -32,13 +33,13 @@ float clearCoatLobe(const PixelParams pixel, const float3 h, float NoH, float Lo
 #endif
 
 #if defined(MATERIAL_HAS_ANISOTROPY)
-float3 anisotropicLobe(const PixelParams pixel, const Light light, const float3 h,
-        float NoV, float NoL, float NoH, float LoH) {
+float3 anisotropicLobe(const ShadingParams shading, const PixelParams pixel, const Light light, 
+    const float3 h, float NoV, float NoL, float NoH, float LoH) {
 
     float3 l = light.l;
     float3 t = pixel.anisotropicT;
     float3 b = pixel.anisotropicB;
-    float3 v = shading_view;
+    float3 v = shading.view;
 
     float ToV = dot(t, v);
     float BoV = dot(b, v);
@@ -72,10 +73,10 @@ float3 isotropicLobe(const PixelParams pixel, const Light light, const float3 h,
     return (D * V) * F;
 }
 
-float3 specularLobe(const PixelParams pixel, const Light light, const float3 h,
-        float NoV, float NoL, float NoH, float LoH) {
+float3 specularLobe(const ShadingParams shading, const PixelParams pixel, const Light light, 
+    const float3 h, float NoV, float NoL, float NoH, float LoH) {
 #if defined(MATERIAL_HAS_ANISOTROPY)
-    return anisotropicLobe(pixel, light, h, NoV, NoL, NoH, LoH);
+    return anisotropicLobe(shading, pixel, light, h, NoV, NoL, NoH, LoH);
 #else
     return isotropicLobe(pixel, light, h, NoV, NoL, NoH, LoH);
 #endif
@@ -112,7 +113,7 @@ float3 surfaceShading(const ShadingParams shading, const PixelParams pixel, cons
     float NoH = saturate(dot(shading.normal, h));
     float LoH = saturate(dot(light.l, h));
 
-    float3 Fr = specularLobe(pixel, light, h, NoV, NoL, NoH, LoH) * PI;
+    float3 Fr = specularLobe(shading, pixel, light, h, NoV, NoL, NoH, LoH) * PI;
     float3 Fd = diffuseLobe(pixel, NoV, NoL, NoH) * PI * NoL;
 
 #if defined(HAS_REFRACTION)
@@ -132,7 +133,7 @@ float3 surfaceShading(const ShadingParams shading, const PixelParams pixel, cons
 
 #if defined(MATERIAL_HAS_CLEAR_COAT)
     float Fcc;
-    float clearCoat = clearCoatLobe(pixel, h, NoH, LoH, Fcc);
+    float clearCoat = clearCoatLobe(shading, pixel, h, NoH, LoH, Fcc);
     float attenuation = 1.0 - Fcc;
 
 #if defined(MATERIAL_HAS_NORMAL) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL)
@@ -140,7 +141,7 @@ float3 surfaceShading(const ShadingParams shading, const PixelParams pixel, cons
 
     // If the material has a normal map, we want to use the geometric normal
     // instead to avoid applying the normal map details to the clear coat layer
-    float clearCoatNoL = saturate(dot(shading_clearCoatNormal, light.l));
+    float clearCoatNoL = saturate(dot(shading.clearCoatNormal, light.l));
     color += clearCoat * clearCoatNoL;
 
     // Early exit to avoid the extra multiplication by NoL

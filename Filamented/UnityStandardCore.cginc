@@ -96,14 +96,18 @@ UnityIndirect ZeroIndirect ()
     return ind;
 }
 
+void GetBakedAttenuation(inout float atten, float2 lightmapUV, float3 worldPos)
+{
+    // Base pass with Lightmap support is responsible for handling ShadowMask / blending here for performance reason
+    #if defined(HANDLE_SHADOWS_BLENDING_IN_GI)
+        half bakedAtten = UnitySampleBakedOcclusion(lightmapUV.xy, worldPos);
+        float zDist = dot(_WorldSpaceCameraPos - worldPos, UNITY_MATRIX_V[2].xyz);
+        float fadeDist = UnityComputeShadowFadeDistance(worldPos, zDist);
+        atten = UnityMixRealtimeAndBakedShadows(atten, bakedAtten, UnityComputeShadowFade(fadeDist));
+    #endif
+}
 //-------------------------------------------------------------------------------------
 // Common fragment setup
-
-// deprecated
-half3 WorldNormal(half4 tan2world[3])
-{
-    return normalize(tan2world[2].xyz);
-}
 
 float3 PerPixelWorldNormal(float4 i_tex, float4 tangentToWorld[3])
 {
@@ -194,7 +198,7 @@ inline FragmentCommonData SpecularSetup (float4 i_tex)
     half3 diffColor = EnergyConservationBetweenDiffuseAndSpecular (Albedo(i_tex), specColor, /*out*/ oneMinusReflectivity);
 
     FragmentCommonData o = (FragmentCommonData)0;
-    o.diffColor = Albedo(i_tex);
+    o.diffColor = diffColor;
     o.specColor = specColor;
     o.oneMinusReflectivity = oneMinusReflectivity;
     o.smoothness = smoothness;
@@ -212,7 +216,7 @@ inline FragmentCommonData RoughnessSetup(float4 i_tex)
     half3 diffColor = DiffuseAndSpecularFromMetallic(Albedo(i_tex), metallic, /*out*/ specColor, /*out*/ oneMinusReflectivity);
 
     FragmentCommonData o = (FragmentCommonData)0;
-    o.diffColor = Albedo(i_tex);
+    o.diffColor = diffColor;
     o.specColor = specColor;
     o.oneMinusReflectivity = oneMinusReflectivity;
     o.smoothness = smoothness;
@@ -230,7 +234,7 @@ inline FragmentCommonData MetallicSetup (float4 i_tex)
     half3 diffColor = DiffuseAndSpecularFromMetallic (Albedo(i_tex), metallic, /*out*/ specColor, /*out*/ oneMinusReflectivity);
 
     FragmentCommonData o = (FragmentCommonData)0;
-    o.diffColor = Albedo(i_tex);
+    o.diffColor = diffColor;
     o.specColor = specColor;
     o.oneMinusReflectivity = oneMinusReflectivity;
     o.smoothness = smoothness;
@@ -431,30 +435,14 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     UnityLight mainLight = MainLight ();
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
 
+    #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
+    GetBakedAttenuation(atten, i_ambientOrLightmapUV.xy, s.posWorld);
+    #endif
+
     half occlusion = Occlusion(i.tex.xy);
     UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
 
     float3 viewDir = -s.eyeVec;
-
-// NdotV should not be negative for visible pixels, but it can happen due to perspective projection and normal mapping
-// In this case normal should be modified to become valid (i.e facing camera) and not cause weird artifacts.
-// but this operation adds few ALU and users may not want it. Alternative is to simply take the abs of NdotV (less correct but works too).
-// Following define allow to control this. Set it to 0 if ALU is critical on your platform.
-// This correction is interesting for GGX with SmithJoint visibility function because artifacts are more visible in this case due to highlight edge of rough surface
-// Edit: Disable this code by default for now as it is not compatible with two sided lighting used in SpeedTree.
-#define UNITY_HANDLE_CORRECTLY_NEGATIVE_NDOTV 0
-
-#if UNITY_HANDLE_CORRECTLY_NEGATIVE_NDOTV
-    // The amount we shift the normal toward the view vector is defined by the dot product.
-    half shiftAmount = dot(normal, viewDir);
-    normal = shiftAmount < 0.0f ? normal + viewDir * (-shiftAmount + 1e-5f) : normal;
-    // A re-normalization should be applied here but as the shift is small we don't do it to save ALU.
-    //normal = normalize(normal);
-
-    float NoV = clampNoV(dot(s.normalWorld, viewDir)); // TODO: this saturate should no be necessary here
-#else
-    half NoV = abs(dot(s.normalWorld, viewDir));    // This abs allow to limit artifact
-#endif
 
     // Stopgap
 
@@ -465,21 +453,39 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     material.specularColor = s.specColor;
     material.ambientOcclusion = occlusion;
     material.emissive = float4(Emission(i.tex.xy), 1.0);
-    //material.normal = ; tangent-space normal
+    //material.normal = ; tangent-space normal, not available
 
     ShadingParams shading = (ShadingParams)0;
-    prepareMaterial(shading, material);
-    // shading.tangentToWorld
+    // Initialize shading with expected parameters
+    float3x3 tangentToWorld;
+    tangentToWorld[0] = i.tangentToWorldAndPackedData[0].xyz;
+    tangentToWorld[1] = i.tangentToWorldAndPackedData[1].xyz;
+    tangentToWorld[2] = i.tangentToWorldAndPackedData[2].xyz;
+    shading.tangentToWorld = tangentToWorld;
+    shading.geometricNormal = i.tangentToWorldAndPackedData[2].xyz;
     shading.position = s.posWorld;
     shading.view = viewDir;
+
+    shading.attenuation = atten;
+
+    #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
+        shading.ambient = 0;
+        shading.lightmapUV = i.ambientOrLightmapUV;
+    #else
+        shading.ambient = i.ambientOrLightmapUV.rgb;
+        shading.lightmapUV = 0;
+    #endif
+
+    prepareMaterial(shading, material);
+
+    // At the moment, the Standard struct does not pass the tangent-space normal here
+    // so we can't use Filament's code for that, not that we need to
     shading.normal = s.normalWorld;
-    shading.geometricNormal = s.normalWorld;
     shading.reflected = -reflect(viewDir, s.normalWorld);
-    shading.NoV = NoV;
+    //shading.NoV = NoV;
     // shading.bentNormal
     // shading.clearCoatNormal
     // shading.normalizedViewportCoord
-
 
     //half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, gi);
     //half4 c = BRDF_Filament_Standard (shading, material, pixel);

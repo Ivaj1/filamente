@@ -56,7 +56,8 @@ void evaluateDirectionalLight(const ShadingParams shading, const MaterialInputs 
         float ssContactShadowOcclusion = 0.0;
 
         // hasDirectionalShadows && cascadeHasVisibleShadows
-        if (0) {
+        if (1) {
+            visibility*=shading.attenuation;
             // apply directional shadows to visibility here
         }
         // if contact shadows are enabled

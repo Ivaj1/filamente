@@ -2,6 +2,7 @@
 #define FILAMENT_LIGHT_INDIRECT
 
 #include "FilamentCommonOcclusion.cginc"
+#include "FilamentBRDF.cginc"
 #include "UnityImageBasedLightingMinimal.cginc"
 #include "UnityStandardUtils.cginc"
 #include "UnityLightingCommon.cginc"
@@ -234,7 +235,7 @@ float3 specularDFG(const PixelParams pixel) {
 
 /**
  * Returns the reflected vector at the current shading point. The reflected vector
- * return by this function might be different from shading_reflected:
+ * return by this function might be different from shading.reflected:
  * - For anisotropic material, we bend the reflection vector to simulate
  *   anisotropic indirect lighting
  * - The reflected vector may be modified to point towards the dominant specular
@@ -271,15 +272,16 @@ float3 getReflectedVector(const ShadingParams shading, const PixelParams pixel, 
 
 #if IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
 
-void isEvaluateClearCoatIBL(const PixelParams pixel, float specularAO, inout float3 Fd, inout float3 Fr) {
+void isEvaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel, 
+    float specularAO, inout float3 Fd, inout float3 Fr) {
 #if defined(MATERIAL_HAS_CLEAR_COAT)
 #if defined(MATERIAL_HAS_NORMAL) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL)
     // We want to use the geometric normal for the clear coat layer
-    float clearCoatNoV = clampNoV(dot(shading_clearCoatNormal, shading_view));
-    float3 clearCoatNormal = shading_clearCoatNormal;
+    float clearCoatNoV = clampNoV(dot(shading.clearCoatNormal, shading.view));
+    float3 clearCoatNormal = shading.clearCoatNormal;
 #else
-    float clearCoatNoV = shading_NoV;
-    float3 clearCoatNormal = shading_normal;
+    float clearCoatNoV = shading.NoV;
+    float3 clearCoatNormal = shading.normal;
 #endif
     // The clear coat layer assumes an IOR of 1.5 (4% reflectance)
     float Fc = F_Schlick(0.04, 1.0, clearCoatNoV) * pixel.clearCoat;
@@ -295,7 +297,7 @@ void isEvaluateClearCoatIBL(const PixelParams pixel, float specularAO, inout flo
     p.anisotropy = 0.0;
 #endif
 
-    float3 clearCoatLobe = isEvaluateSpecularIBL(p, clearCoatNormal, shading_view, clearCoatNoV);
+    float3 clearCoatLobe = isEvaluateSpecularIBL(p, clearCoatNormal, shading.view, clearCoatNoV);
     Fr += clearCoatLobe * (specularAO * pixel.clearCoat);
 #endif
 }
@@ -306,16 +308,18 @@ void isEvaluateClearCoatIBL(const PixelParams pixel, float specularAO, inout flo
 // IBL evaluation
 //------------------------------------------------------------------------------
 
-void evaluateClothIndirectDiffuseBRDF(const PixelParams pixel, inout float diffuse) {
+void evaluateClothIndirectDiffuseBRDF(const ShadingParams shading, const PixelParams pixel, 
+    inout float diffuse) {
 #if defined(SHADING_MODEL_CLOTH)
 #if defined(MATERIAL_HAS_SUBSURFACE_COLOR)
     // Simulate subsurface scattering with a wrap diffuse term
-    diffuse *= Fd_Wrap(shading_NoV, 0.5);
+    diffuse *= Fd_Wrap(shading.NoV, 0.5);
 #endif
 #endif
 }
 
-void evaluateSheenIBL(const PixelParams pixel, float specularAO, inout float3 Fd, inout float3 Fr) {
+void evaluateSheenIBL(const ShadingParams shading, const PixelParams pixel, 
+    float specularAO, inout float3 Fd, inout float3 Fr) {
 #if !defined(SHADING_MODEL_CLOTH) && !defined(SHADING_MODEL_SUBSURFACE)
 #if defined(MATERIAL_HAS_SHEEN_COLOR)
     // Albedo scaling of the base layer before we layer sheen on top
@@ -323,12 +327,13 @@ void evaluateSheenIBL(const PixelParams pixel, float specularAO, inout float3 Fd
     Fr *= pixel.sheenScaling;
 
     float3 reflectance = pixel.sheenDFG * pixel.sheenColor;
-    Fr += reflectance * prefilteredRadiance(shading_reflected, pixel.sheenPerceptualRoughness);
+    Fr += reflectance * prefilteredRadiance(shading.reflected, pixel.sheenPerceptualRoughness);
 #endif
 #endif
 }
 
-void evaluateClearCoatIBL(const PixelParams pixel, float specularAO, inout float3 Fd, inout float3 Fr) {
+void evaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel, 
+    float specularAO, inout float3 Fd, inout float3 Fr) {
 #if IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
     isEvaluateClearCoatIBL(pixel, specularAO, Fd, Fr);
     return;
@@ -337,11 +342,11 @@ void evaluateClearCoatIBL(const PixelParams pixel, float specularAO, inout float
 #if defined(MATERIAL_HAS_CLEAR_COAT)
 #if defined(MATERIAL_HAS_NORMAL) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL)
     // We want to use the geometric normal for the clear coat layer
-    float clearCoatNoV = clampNoV(dot(shading_clearCoatNormal, shading_view));
-    float3 clearCoatR = reflect(-shading_view, shading_clearCoatNormal);
+    float clearCoatNoV = clampNoV(dot(shading.clearCoatNormal, shading.view));
+    float3 clearCoatR = reflect(-shading.view, shading.clearCoatNormal);
 #else
-    float clearCoatNoV = shading_NoV;
-    float3 clearCoatR = shading_reflected;
+    float clearCoatNoV = shading.NoV;
+    float3 clearCoatR = shading.reflected;
 #endif
     // The clear coat layer assumes an IOR of 1.5 (4% reflectance)
     float Fc = F_Schlick(0.04, 1.0, clearCoatNoV) * pixel.clearCoat;
@@ -352,15 +357,15 @@ void evaluateClearCoatIBL(const PixelParams pixel, float specularAO, inout float
 #endif
 }
 
-void evaluateSubsurfaceIBL(const PixelParams pixel, const float3 diffuseIrradiance,
-        inout float3 Fd, inout float3 Fr) {
+void evaluateSubsurfaceIBL(const ShadingParams shading, const PixelParams pixel, 
+    const float3 diffuseIrradiance, inout float3 Fd, inout float3 Fr) {
 #if defined(SHADING_MODEL_SUBSURFACE)
     float3 viewIndependent = diffuseIrradiance;
-    float3 viewDependent = prefilteredRadiance(-shading_view, pixel.roughness, 1.0 + pixel.thickness);
+    float3 viewDependent = prefilteredRadiance(-shading.view, pixel.roughness, 1.0 + pixel.thickness);
     float attenuation = (1.0 - pixel.thickness) / (2.0 * PI);
     Fd += pixel.subsurfaceColor * (viewIndependent + viewDependent) * attenuation;
 #elif defined(SHADING_MODEL_CLOTH) && defined(MATERIAL_HAS_SUBSURFACE_COLOR)
-    Fd *= saturate(pixel.subsurfaceColor + shading_NoV);
+    Fd *= saturate(pixel.subsurfaceColor + shading.NoV);
 #endif
 }
 
@@ -399,7 +404,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     // diffuse layer
     float diffuseBRDF = singleBounceAO(diffuseAO); // Fd_Lambert() is baked in the SH below
 
-    evaluateClothIndirectDiffuseBRDF(pixel, diffuseBRDF);
+    evaluateClothIndirectDiffuseBRDF(shading, pixel, diffuseBRDF);
 
 #if defined(MATERIAL_HAS_BENT_NORMAL)
     float3 diffuseNormal = shading.bentNormal;
@@ -416,13 +421,13 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     float3 Fd = pixel.diffuseColor * diffuseIrradiance * (1.0 - E) * diffuseBRDF;
 
     // sheen layer
-    evaluateSheenIBL(pixel, specularAO, Fd, Fr);
+    evaluateSheenIBL(shading, pixel, specularAO, Fd, Fr);
 
     // clear coat layer
-    evaluateClearCoatIBL(pixel, specularAO, Fd, Fr);
+    evaluateClearCoatIBL(shading, pixel, specularAO, Fd, Fr);
 
     // subsurface layer
-    evaluateSubsurfaceIBL(pixel, diffuseIrradiance, Fd, Fr);
+    evaluateSubsurfaceIBL(shading, pixel, diffuseIrradiance, Fd, Fr);
 
     // extra ambient occlusion term
     multiBounceAO(diffuseAO, pixel.diffuseColor, Fd);

@@ -227,7 +227,7 @@ void getAnisotropyPixelParams(const ShadingParams shading, const MaterialInputs 
 #if defined(MATERIAL_HAS_ANISOTROPY)
     float3 direction = material.anisotropyDirection;
     pixel.anisotropy = material.anisotropy;
-    pixel.anisotropicT = normalize(shading.tangentToWorld * direction);
+    pixel.anisotropicT = normalize(mul(shading.tangentToWorld, direction));
     pixel.anisotropicB = normalize(cross(shading.geometricNormal, pixel.anisotropicT));
 #endif
 }
