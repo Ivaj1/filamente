@@ -72,7 +72,7 @@ float D_GGX(float roughness, float NoH, const float3 h) {
     float a = NoH * roughness;
     float k = roughness / (oneMinusNoHSquared + a * a);
     float d = k * k * (1.0 / PI);
-    return saturate(d);
+    return saturateMediump(d);
 }
 
 float D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH) {
@@ -106,13 +106,13 @@ float V_SmithGGXCorrelated(float roughness, float NoV, float NoL) {
     // a2=0 => v = 1 / 4*NoL*NoV   => min=1/4, max=+inf
     // a2=1 => v = 1 / 2*(NoL+NoV) => min=1/4, max=+inf
     // clamp to the maximum value representable in mediump
-    return saturate(v);
+    return saturateMediump(v);
 }
 
 float V_SmithGGXCorrelated_Fast(float roughness, float NoV, float NoL) {
     // Hammon 2017, "PBR Diffuse Lighting for GGX+Smith Microsurfaces"
     float v = 0.5 / lerp(2.0 * NoL * NoV, NoL + NoV, roughness);
-    return saturate(v);
+    return saturateMediump(v);
 }
 
 float V_SmithGGXCorrelated_Anisotropic(float at, float ab, float ToV, float BoV,
@@ -122,17 +122,17 @@ float V_SmithGGXCorrelated_Anisotropic(float at, float ab, float ToV, float BoV,
     float lambdaV = NoL * length(float3(at * ToV, ab * BoV, NoV));
     float lambdaL = NoV * length(float3(at * ToL, ab * BoL, NoL));
     float v = 0.5 / (lambdaV + lambdaL);
-    return saturate(v);
+    return saturateMediump(v);
 }
 
 float V_Kelemen(float LoH) {
     // Kelemen 2001, "A Microfacet Based Coupled Specular-Matte BRDF Model with Importance Sampling"
-    return saturate(0.25 / (LoH * LoH));
+    return saturateMediump(0.25 / (LoH * LoH));
 }
 
 float V_Neubelt(float NoV, float NoL) {
     // Neubelt and Pettineo 2013, "Crafting a Next-gen Material Pipeline for The Order: 1886"
-    return saturate(1.0 / (4.0 * (NoL + NoV - NoL * NoV)));
+    return saturateMediump(1.0 / (4.0 * (NoL + NoV - NoL * NoV)));
 }
 
 float3 F_Schlick(const float3 f0, float f90, float VoH) {
@@ -172,7 +172,7 @@ float3 fresnel(const float3 f0, float LoH) {
 #if FILAMENT_QUALITY == FILAMENT_QUALITY_LOW
     return F_Schlick(f0, LoH); // f90 = 1.0
 #else
-    float f90 = saturate(dot(f0, (50.0 * 0.33)));
+    float f90 = saturateMediump(dot(f0, (50.0 * 0.33)));
     return F_Schlick(f0, f90, LoH);
 #endif
 #endif
@@ -235,7 +235,7 @@ float Fd_Burley(float roughness, float NoV, float NoL, float LoH) {
 
 // Energy conserving wrap diffuse term, does *not* include the divide by pi
 float Fd_Wrap(float NoL, float w) {
-    return saturate((NoL + w) / sq(1.0 + w));
+    return saturateMediump((NoL + w) / sq(1.0 + w));
 }
 
 //------------------------------------------------------------------------------
