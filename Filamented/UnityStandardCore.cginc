@@ -109,8 +109,9 @@ void GetBakedAttenuation(inout float atten, float2 lightmapUV, float3 worldPos)
 //-------------------------------------------------------------------------------------
 // Common fragment setup
 
-float3 PerPixelWorldNormal(float4 i_tex, float4 tangentToWorld[3])
+float3 PerPixelWorldNormal(float4 i_tex, float4 tangentToWorld[3], inout half3 normalTangent)
 {
+    normalTangent = half3(0, 0, 1);
 #ifdef _NORMALMAP
     half3 tangent = tangentToWorld[0].xyz;
     half3 binormal = tangentToWorld[1].xyz;
@@ -127,7 +128,7 @@ float3 PerPixelWorldNormal(float4 i_tex, float4 tangentToWorld[3])
         binormal = newB * sign (dot (newB, binormal));
     #endif
 
-    half3 normalTangent = NormalInTangentSpace(i_tex);
+    normalTangent = NormalInTangentSpace(i_tex);
     float3 normalWorld = NormalizePerPixelNormal(tangent * normalTangent.x + binormal * normalTangent.y + normal * normalTangent.z); // @TODO: see if we can squeeze this normalize on SM2.0 as well
 #else
     float3 normalWorld = normalize(tangentToWorld[2].xyz);
@@ -169,7 +170,7 @@ struct FragmentCommonData
     // Note: smoothness & oneMinusReflectivity for optimization purposes, mostly for DX9 SM2.0 level.
     // Most of the math is being done on these (1-x) values, and that saves a few precious ALU slots.
     half oneMinusReflectivity, smoothness;
-    float3 normalWorld;
+    float3 normalWorld, normal;
     float3 eyeVec;
     half alpha;
     float3 posWorld;
@@ -252,7 +253,8 @@ inline FragmentCommonData FragmentSetup (inout float4 i_tex, float3 i_eyeVec, ha
     #endif
 
     FragmentCommonData o = UNITY_SETUP_BRDF_INPUT (i_tex);
-    o.normalWorld = PerPixelWorldNormal(i_tex, tangentToWorld);
+    // Added tangent output
+    o.normalWorld = PerPixelWorldNormal(i_tex, tangentToWorld, o.normal);
     o.eyeVec = NormalizePerPixelNormal(i_eyeVec);
     o.posWorld = i_posWorld;
 
@@ -453,7 +455,7 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     material.specularColor = s.specColor;
     material.ambientOcclusion = occlusion;
     material.emissive = float4(Emission(i.tex.xy), 1.0);
-    //material.normal = ; tangent-space normal, not available
+    material.normal = s.normal; // tangent-space normal
 
     ShadingParams shading = (ShadingParams)0;
     // Initialize shading with expected parameters
@@ -477,14 +479,6 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     #endif
 
     prepareMaterial(shading, material);
-
-    // At the moment, the Standard struct does not pass the tangent-space normal here
-    // so we can't use Filament's code for that, not that we need to
-    shading.normal = s.normalWorld;
-    shading.reflected = -reflect(viewDir, s.normalWorld);
-    //shading.NoV = NoV;
-    // shading.bentNormal
-    // shading.clearCoatNormal
     // shading.normalizedViewportCoord
 
     //half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, gi);

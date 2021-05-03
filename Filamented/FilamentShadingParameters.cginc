@@ -55,7 +55,11 @@ void computeShadingParams() {
 void prepareMaterial(inout ShadingParams shading, const MaterialInputs material) {
 #if defined(HAS_ATTRIBUTE_TANGENTS)
 #if defined(MATERIAL_HAS_NORMAL)
-    shading.normal = normalize(mul(shading.tangentToWorld, material.normal));
+    //shading.normal = normalize(mul(shading.tangentToWorld, material.normal));
+    shading.normal = normalize(
+    shading.tangentToWorld[0] * material.normal.x
+    + shading.tangentToWorld[1] * material.normal.y
+    + shading.tangentToWorld[2] * material.normal.z);
 #else
     shading.normal = shading.geometricNormal;
 #endif
