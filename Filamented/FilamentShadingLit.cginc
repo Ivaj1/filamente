@@ -3,6 +3,7 @@
 
 #include "FilamentMaterialInputs.cginc"
 #include "FilamentCommonMath.cginc"
+#include "FilamentCommonGraphics.cginc"
 #include "FilamentCommonLighting.cginc"
 #include "FilamentCommonMaterial.cginc"
 #include "FilamentCommonShading.cginc"
@@ -12,6 +13,8 @@
 #include "FilamentLightIndirect.cginc"
 #include "FilamentShadingLit.cginc"
 #include "FilamentLightDirectional.cginc"
+
+#include "UnityStandardInput.cginc"
 
 //------------------------------------------------------------------------------
 // Lighting

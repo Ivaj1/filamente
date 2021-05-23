@@ -55,10 +55,13 @@ Shader "Silent/Filamented"
         #if DIRECTIONAL
         #define HAS_DIRECTIONAL_LIGHTING 
         #endif
+        #if (POINT || SPOT)
+        #define HAS_DYNAMIC_LIGHTING 
+        #endif
         #if _EMISSION
         #define MATERIAL_HAS_EMISSIVE 
         #endif
-        #if SHADOWS_SCREEN
+        #if (SHADOWS_SCREEN || SHADOWS_SHADOWMASK || LIGHTMAP_SHADOW)
         #define HAS_SHADOWING 
         #endif
 

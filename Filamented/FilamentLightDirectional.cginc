@@ -1,5 +1,7 @@
 #ifndef FILAMENT_LIGHT_DIRECTIONAL
 #define FILAMENT_LIGHT_DIRECTIONAL
+
+#include "UnityLightingCommon.cginc"
 //------------------------------------------------------------------------------
 // Directional light evaluation
 //------------------------------------------------------------------------------
@@ -28,7 +30,7 @@ float3 sampleSunAreaLight(const float3 lightDirection, const ShadingParams shadi
     return lightDirection;
 }
 
-float4 UnityLightColorIntensitySeperated() {
+float4 UnityLight_ColorIntensitySeperated() {
     return float4(_LightColor0.xyz / _LightColor0.w, _LightColor0.w);
 
 }
@@ -36,7 +38,7 @@ float4 UnityLightColorIntensitySeperated() {
 Light getDirectionalLight(ShadingParams shading) {
     Light light;
     // note: lightColorIntensity.w is always premultiplied by the exposure
-    light.colorIntensity = UnityLightColorIntensitySeperated();
+    light.colorIntensity = UnityLight_ColorIntensitySeperated();
     light.l = sampleSunAreaLight(_WorldSpaceLightPos0.xyz, shading);
     light.attenuation = 1.0;
     light.NoL = saturate(dot(shading.normal, light.l));

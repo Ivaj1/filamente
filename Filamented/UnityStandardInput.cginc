@@ -236,4 +236,9 @@ float4 Parallax (float4 texcoords, half3 viewDir)
 
 }
 
+half getMaskThreshold()
+{
+    return _Cutoff;
+}
+
 #endif // UNITY_STANDARD_INPUT_INCLUDED

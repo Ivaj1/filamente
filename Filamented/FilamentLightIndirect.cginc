@@ -88,9 +88,10 @@ float3 Irradiance_RoughnessOne(const float3 n) {
 */
 
 // Return light probes or lightmap.
-float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal )
+float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float occlusion)
 {
     float3 irradiance = shading.ambient;
+    occlusion = 1.0;
 
     #if UNITY_SHOULD_SAMPLE_SH
         irradiance = ShadeSHPerPixel(diffuseNormal, shading.ambient, shading.position);
@@ -100,6 +101,8 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal )
         // Baked lightmaps
         half4 bakedColorTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, shading.lightmapUV.xy);
         half3 bakedColor = DecodeLightmap(bakedColorTex);
+
+        occlusion *= saturate(dot(bakedColor, 5));
 
         #ifdef DIRLIGHTMAP_COMBINED
             fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, shading.lightmapUV.xy);
@@ -431,11 +434,15 @@ void combineDiffuseAndSpecular(const PixelParams pixel,
 void evaluateIBL(const ShadingParams shading, const MaterialInputs material, const PixelParams pixel, 
     inout float3 color) {
     float ssao = 1.0; // Not implemented
-    float diffuseAO = min(material.ambientOcclusion, ssao);
-    float specularAO = computeSpecularAO(shading.NoV, diffuseAO, pixel.roughness);
+    float lightmapAO = 1.0; // 
 
     // Gather Unity GI data
     UnityGIInput unityData = InitialiseUnityGIInput(shading, pixel);
+    float3 unityIrradiance = UnityGI_Irradiance(shading, shading.normal, lightmapAO);
+
+    float diffuseAO = min(material.ambientOcclusion, ssao);
+    float specularAO = computeSpecularAO(shading.NoV, diffuseAO*lightmapAO, pixel.roughness);
+
     // specular layer
     float3 Fr;
 #if IBL_INTEGRATION == IBL_INTEGRATION_PREFILTERED_CUBEMAP
@@ -462,7 +469,8 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 
 #if IBL_INTEGRATION == IBL_INTEGRATION_PREFILTERED_CUBEMAP
     //float3 diffuseIrradiance = get_diffuseIrradiance(diffuseNormal);
-    float3 diffuseIrradiance = UnityGI_Irradiance(shading, diffuseNormal);
+    //float3 diffuseIrradiance = UnityGI_Irradiance(shading, diffuseNormal);
+    float3 diffuseIrradiance = unityIrradiance;
 #elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
     float3 diffuseIrradiance = isEvaluateDiffuseIBL(pixel, diffuseNormal, shading.view);
 #endif

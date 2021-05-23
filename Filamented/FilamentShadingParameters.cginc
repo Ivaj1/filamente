@@ -55,27 +55,23 @@ void computeShadingParams() {
 void prepareMaterial(inout ShadingParams shading, const MaterialInputs material) {
 #if defined(HAS_ATTRIBUTE_TANGENTS)
 #if defined(MATERIAL_HAS_NORMAL)
-    //shading.normal = normalize(mul(shading.tangentToWorld, material.normal));
-    shading.normal = normalize(
-    shading.tangentToWorld[0] * material.normal.x
-    + shading.tangentToWorld[1] * material.normal.y
-    + shading.tangentToWorld[2] * material.normal.z);
+    shading.normal = normalize(mul(shading.tangentToWorld, material.normal));
 #else
     shading.normal = shading.geometricNormal;
-#endif
+#endif // MATERIAL_HAS_NORMAL
     shading.NoV = clampNoV(dot(shading.normal, shading.view));
     shading.reflected = reflect(-shading.view, shading.normal);
 
 #if defined(MATERIAL_HAS_BENT_NORMAL)
     shading.bentNormal = normalize(mul(shading.tangentToWorld, material.bentNormal));
-#endif
+#endif // MATERIAL_HAS_BENT_NORMAL
 
 #if defined(MATERIAL_HAS_CLEAR_COAT)
 #if defined(MATERIAL_HAS_CLEAR_COAT_NORMAL)
     shading.clearCoatNormal = normalize(mul(shading.tangentToWorld, material.clearCoatNormal));
 #else
     shading.clearCoatNormal = shading.geometricNormal;
-#endif
-#endif
-#endif
+#endif // MATERIAL_HAS_CLEAR_COAT_NORMAL
+#endif // MATERIAL_HAS_CLEAR_COAT
+#endif // HAS_ATTRIBUTE_TANGENTS
 }

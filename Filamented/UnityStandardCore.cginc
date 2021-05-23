@@ -27,11 +27,11 @@
 #include "FilamentLightIndirect.cginc"
 
 #include "FilamentBRDF.cginc"
-#include "FilamentShadingLit.cginc"
 #include "FilamentShadingStandard.cginc"
+#include "FilamentLightPunctual.cginc"
+#include "FilamentShadingLit.cginc"
 
 #include "FilamentLightDirectional.cginc"
-
 
 #include "AutoLight.cginc"
 //-------------------------------------------------------------------------------------
@@ -129,7 +129,7 @@ float3 PerPixelWorldNormal(float4 i_tex, float4 tangentToWorld[3], inout half3 n
     #endif
 
     normalTangent = NormalInTangentSpace(i_tex);
-    float3 normalWorld = NormalizePerPixelNormal(tangent * normalTangent.x + binormal * normalTangent.y + normal * normalTangent.z); // @TODO: see if we can squeeze this normalize on SM2.0 as well
+    float3 normalWorld = NormalizePerPixelNormal(tangent * normalTangent.x + binormal * normalTangent.y + normal * normalTangent.z); 
 #else
     float3 normalWorld = normalize(tangentToWorld[2].xyz);
 #endif
@@ -444,18 +444,18 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     half occlusion = Occlusion(i.tex.xy);
     UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
 
-    float3 viewDir = -s.eyeVec;
-
-    // Stopgap
-
     MaterialInputs material = (MaterialInputs)0;
     initMaterial(material);
     material.baseColor = float4(s.diffColor.xyz, s.alpha);
+    #if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
     material.glossiness = s.smoothness;
     material.specularColor = s.specColor;
+    #endif
     material.ambientOcclusion = occlusion;
     material.emissive = float4(Emission(i.tex.xy), 1.0);
+    #if _NORMALMAP
     material.normal = s.normal; // tangent-space normal
+    #endif
 
     ShadingParams shading = (ShadingParams)0;
     // Initialize shading with expected parameters
@@ -463,11 +463,11 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     tangentToWorld[0] = i.tangentToWorldAndPackedData[0].xyz;
     tangentToWorld[1] = i.tangentToWorldAndPackedData[1].xyz;
     tangentToWorld[2] = i.tangentToWorldAndPackedData[2].xyz;
-    shading.tangentToWorld = tangentToWorld;
+    shading.tangentToWorld = transpose(tangentToWorld);
     shading.geometricNormal = i.tangentToWorldAndPackedData[2].xyz;
+    shading.normal = (shading.geometricNormal);
     shading.position = s.posWorld;
-    shading.view = viewDir;
-
+    shading.view = -s.eyeVec;
     shading.attenuation = atten;
 
     #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
@@ -479,10 +479,9 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     #endif
 
     prepareMaterial(shading, material);
-    // shading.normalizedViewportCoord
 
-    //half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, gi);
-    //half4 c = BRDF_Filament_Standard (shading, material, pixel);
+    // Todo
+    // shading.normalizedViewportCoord
 
     float4 c = evaluateMaterial (shading, material);
 
@@ -574,8 +573,36 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
     UnityLight light = AdditiveLight (IN_LIGHTDIR_FWDADD(i), atten);
     UnityIndirect noIndirect = ZeroIndirect ();
 
-    half4 c = 0;//UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, noIndirect);
+    MaterialInputs material = (MaterialInputs)0;
+    initMaterial(material);
+    material.baseColor = float4(s.diffColor.xyz, s.alpha);
+    #if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
+    material.glossiness = s.smoothness;
+    material.specularColor = s.specColor;
+    #endif
+    material.ambientOcclusion = Occlusion(i.tex.xy);
+    material.emissive = float4(Emission(i.tex.xy), 1.0);
+    #if _NORMALMAP
+    material.normal = s.normal; // tangent-space normal
+    #endif
 
+    ShadingParams shading = (ShadingParams)0;
+    // Initialize shading with expected parameters
+    float3x3 tangentToWorld;
+    tangentToWorld[0] = i.tangentToWorldAndLightDir[0].xyz;
+    tangentToWorld[1] = i.tangentToWorldAndLightDir[1].xyz;
+    tangentToWorld[2] = i.tangentToWorldAndLightDir[2].xyz;
+    shading.tangentToWorld = transpose(tangentToWorld);
+    shading.geometricNormal = i.tangentToWorldAndLightDir[2].xyz;
+    shading.normal = (shading.geometricNormal);
+    shading.position = s.posWorld;
+    shading.view = -s.eyeVec;
+    shading.attenuation = atten;
+
+    prepareMaterial(shading, material);
+
+    float4 c = evaluateMaterial (shading, material);
+    
     UNITY_EXTRACT_FOG_FROM_EYE_VEC(i);
     UNITY_APPLY_FOG_COLOR(_unity_fogCoord, c.rgb, half4(0,0,0,0)); // fog towards black in additive pass
     return OutputForward (c, s.alpha);

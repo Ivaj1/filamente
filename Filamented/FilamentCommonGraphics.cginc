@@ -10,19 +10,20 @@
  *
  * @public-api
  */
-float luminance(const float3 linear) {
-    return dot(linear, float3(0.2126, 0.7152, 0.0722));
+float luminance(const float3 linearCol) {
+    return dot(linearCol, float3(0.2126, 0.7152, 0.0722));
 }
 
 /**
  * Computes the pre-exposed intensity using the specified intensity and exposure.
- * This function exists to force highp precision on the two parameters
+ * This function exists to force high precision on the two parameters
+ * ...Which isn't applicable yet.
  */
-float computePreExposedIntensity(const highp float intensity, const highp float exposure) {
+float computePreExposedIntensity(const float intensity, const float exposure) {
     return intensity * exposure;
 }
 
-void unpremultiply(inout float3 color) {
+void unpremultiply(inout float4 color) {
     color.rgb /= max(color.a, FLT_EPS);
 }
 
@@ -33,13 +34,13 @@ void unpremultiply(inout float3 color) {
  */
 float3 ycbcrToRgb(float luminance, float2 cbcr) {
     // Taken from https://developer.apple.com/documentation/arkit/arframe/2867984-capturedimage
-    const mat4 ycbcrToRgbTransform = mat4(
+    const float4x4 ycbcrToRgbTransform = {
          1.0000,  1.0000,  1.0000,  0.0000,
          0.0000, -0.3441,  1.7720,  0.0000,
          1.4020, -0.7141,  0.0000,  0.0000,
         -0.7010,  0.5291, -0.8860,  1.0000
-    );
-    return (ycbcrToRgbTransform * float3(luminance, cbcr, 1.0)).rgb;
+    };
+    return mul(ycbcrToRgbTransform, float4(luminance, cbcr, 1.0)).rgb;
 }
 
 //------------------------------------------------------------------------------
@@ -73,10 +74,10 @@ float3 inverseTonemapSRGB(float3 color) {
  *
  * @public-api
  */
-float3 inverseTonemap(float3 linear) {
+float3 inverseTonemap(float3 linearCol) {
     // Linear input
-    linear = clamp(linear, 0.0, 1.0);
-    return Inverse_Tonemap_Unreal(pow(linear, float3(1.0 / 2.2)));
+    linearCol = clamp(linearCol, 0.0, 1.0);
+    return Inverse_Tonemap_Unreal(pow(linearCol, 1.0 / 2.2));
 }
 
 //------------------------------------------------------------------------------
@@ -86,7 +87,7 @@ float3 inverseTonemap(float3 linear) {
 /**
  * Decodes the specified RGBM value to linear HDR RGB.
  */
-float3 decodeRGBM(float3 c) {
+float3 decodeRGBM(float4 c) {
     c.rgb *= (c.a * 16.0);
     return c.rgb * c.rgb;
 }

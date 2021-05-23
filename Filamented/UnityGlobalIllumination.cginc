@@ -85,7 +85,7 @@ inline void ResetUnityGI(out UnityGI outGI)
     outGI.indirect.specular = 0;
 }
 
-inline UnityGI UnityGI_Base(UnityGIInput data, half occlusion, half3 normalWorld)
+inline UnityGI UnityGI_Base(UnityGIInput data, inout half occlusion, half3 normalWorld)
 {
     UnityGI o_gi;
     ResetUnityGI(o_gi);
@@ -109,6 +109,11 @@ inline UnityGI UnityGI_Base(UnityGIInput data, half occlusion, half3 normalWorld
         // Baked lightmaps
         half4 bakedColorTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, data.lightmapUV.xy);
         half3 bakedColor = DecodeLightmap(bakedColorTex);
+
+        // Derive specular occlusion
+
+        half bakedOcclusion = saturate(dot(bakedColor * 3.0, 1.0));
+        occlusion *= bakedOcclusion;
 
         #ifdef DIRLIGHTMAP_COMBINED
             fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, data.lightmapUV.xy);
