@@ -52,10 +52,27 @@ Shader "Silent/Filamented"
 
         // Filament crosscompatibility defined
         // Move these later!
-        #define HAS_DIRECTIONAL_LIGHTING DIRECTIONAL
-        #define MATERIAL_HAS_EMISSIVE _EMISSION
+        #if DIRECTIONAL
+        #define HAS_DIRECTIONAL_LIGHTING 
+        #endif
+        #if _EMISSION
+        #define MATERIAL_HAS_EMISSIVE 
+        #endif
+        #if SHADOWS_SCREEN
+        #define HAS_SHADOWING 
+        #endif
+
         #define MATERIAL_HAS_AMBIENT_OCCLUSION 
-        #define HAS_SHADOWING SHADOWS_SCREEN
+
+        #if _ALPHAPREMULTIPLY_ON
+        #define BLEND_MODE_TRANSPARENT 
+        #endif
+        #if _ALPHABLEND_ON
+        #define BLEND_MODE_FADE 
+        #endif
+        #if _ALPHATEST_ON
+        #define BLEND_MODE_MASKED 
+        #endif
 
         // #define MATERIAL_HAS_ANISOTROPY
         // #define MATERIAL_HAS_CLEAR_COAT
@@ -66,9 +83,11 @@ Shader "Silent/Filamented"
         // Standard shader's FragmentSetup produces. 
         // However, FragmentSetup should be replaced with MaterialSetup later. 
         #define SHADING_MODEL_SPECULAR_GLOSSINESS
-
-        #define HAS_ATTRIBUTE_TANGENTS _NORMALMAP
-        #define MATERIAL_HAS_NORMAL _NORMALMAP
+        
+        #if _NORMALMAP
+        #define HAS_ATTRIBUTE_TANGENTS 
+        #define MATERIAL_HAS_NORMAL
+        #endif
         
         #define SPECULAR_AMBIENT_OCCLUSION SPECULAR_AO_SIMPLE
         #define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
@@ -136,13 +155,13 @@ Shader "Silent/Filamented"
             // -------------------------------------
 
 
-            #pragma shader_feature_local _NORMALMAP
-            #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-            #pragma shader_feature_local _METALLICGLOSSMAP
-            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
-            #pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
-            #pragma shader_feature_local_fragment _DETAIL_MULX2
-            #pragma shader_feature_local _PARALLAXMAP
+            #pragma shader_feature _NORMALMAP
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature _DETAIL_MULX2
+            #pragma shader_feature _PARALLAXMAP
 
             #pragma multi_compile_fwdadd_fullshadows
             #pragma multi_compile_fog
@@ -169,10 +188,10 @@ Shader "Silent/Filamented"
             // -------------------------------------
 
 
-            #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-            #pragma shader_feature_local _METALLICGLOSSMAP
-            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
-            #pragma shader_feature_local _PARALLAXMAP
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _PARALLAXMAP
             #pragma multi_compile_shadowcaster
             #pragma multi_compile_instancing
             // Uncomment the following line to enable dithering LOD crossfade. Note: there are more in the file to uncomment for other passes.
@@ -185,7 +204,11 @@ Shader "Silent/Filamented"
 
             ENDCG
         }
+
+        // Deferred not implemented
         UsePass "Standard/DEFERRED"
+
+        // Meta not implemented
         UsePass "Standard/META"
 
     }
