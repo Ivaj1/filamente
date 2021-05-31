@@ -56,46 +56,6 @@ float3 NormalizePerPixelNormal (float3 n)
 }
 
 //-------------------------------------------------------------------------------------
-UnityLight MainLight ()
-{
-    UnityLight l;
-
-    l.color = _LightColor0.rgb;
-    l.dir = _WorldSpaceLightPos0.xyz;
-    return l;
-}
-
-UnityLight AdditiveLight (half3 lightDir, half atten)
-{
-    UnityLight l;
-
-    l.color = _LightColor0.rgb;
-    l.dir = lightDir;
-    #ifndef USING_DIRECTIONAL_LIGHT
-        l.dir = NormalizePerPixelNormal(l.dir);
-    #endif
-
-    // shadow the light
-    l.color *= atten;
-    return l;
-}
-
-UnityLight DummyLight ()
-{
-    UnityLight l;
-    l.color = 0;
-    l.dir = half3 (0,1,0);
-    return l;
-}
-
-UnityIndirect ZeroIndirect ()
-{
-    UnityIndirect ind;
-    ind.diffuse = 0;
-    ind.specular = 0;
-    return ind;
-}
-
 void GetBakedAttenuation(inout float atten, float2 lightmapUV, float3 worldPos)
 {
     // Base pass with Lightmap support is responsible for handling ShadowMask / blending here for performance reason
@@ -434,7 +394,6 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     UNITY_SETUP_INSTANCE_ID(i);
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
-    UnityLight mainLight = MainLight ();
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
 
     #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
@@ -442,7 +401,6 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     #endif
 
     half occlusion = Occlusion(i.tex.xy);
-    UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
 
     MaterialInputs material = (MaterialInputs)0;
     initMaterial(material);
@@ -570,8 +528,6 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
     FRAGMENT_SETUP_FWDADD(s)
 
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld)
-    UnityLight light = AdditiveLight (IN_LIGHTDIR_FWDADD(i), atten);
-    UnityIndirect noIndirect = ZeroIndirect ();
 
     MaterialInputs material = (MaterialInputs)0;
     initMaterial(material);
@@ -718,7 +674,6 @@ void fragDeferred (
     UNITY_SETUP_INSTANCE_ID(i);
 
     // no analytic lights in this pass
-    UnityLight dummyLight = DummyLight ();
     half atten = 1;
 
     // only GI
@@ -729,7 +684,6 @@ void fragDeferred (
     bool sampleReflectionsInDeferred = true;
 #endif
 
-    UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, dummyLight, sampleReflectionsInDeferred);
 
     half3 emissiveColor = 0;//UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect).rgb;
 
