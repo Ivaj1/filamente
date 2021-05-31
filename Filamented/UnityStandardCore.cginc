@@ -400,6 +400,19 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     GetBakedAttenuation(atten, i.ambientOrLightmapUV.xy, s.posWorld);
     #endif
 
+    ShadingParams shading = (ShadingParams)0;
+    // Initialize shading with expected parameters
+    float3x3 tangentToWorld;
+    tangentToWorld[0] = i.tangentToWorldAndPackedData[0].xyz;
+    tangentToWorld[1] = i.tangentToWorldAndPackedData[1].xyz;
+    tangentToWorld[2] = i.tangentToWorldAndPackedData[2].xyz;
+    shading.tangentToWorld = transpose(tangentToWorld);
+    shading.geometricNormal = i.tangentToWorldAndPackedData[2].xyz;
+    shading.normal = (shading.geometricNormal);
+    shading.position = s.posWorld;
+    shading.view = -s.eyeVec;
+    shading.attenuation = atten;
+
     half occlusion = Occlusion(i.tex.xy);
 
     MaterialInputs material = (MaterialInputs)0;
@@ -414,19 +427,6 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     #if _NORMALMAP
     material.normal = s.normal; // tangent-space normal
     #endif
-
-    ShadingParams shading = (ShadingParams)0;
-    // Initialize shading with expected parameters
-    float3x3 tangentToWorld;
-    tangentToWorld[0] = i.tangentToWorldAndPackedData[0].xyz;
-    tangentToWorld[1] = i.tangentToWorldAndPackedData[1].xyz;
-    tangentToWorld[2] = i.tangentToWorldAndPackedData[2].xyz;
-    shading.tangentToWorld = transpose(tangentToWorld);
-    shading.geometricNormal = i.tangentToWorldAndPackedData[2].xyz;
-    shading.normal = (shading.geometricNormal);
-    shading.position = s.posWorld;
-    shading.view = -s.eyeVec;
-    shading.attenuation = atten;
 
     #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
         shading.ambient = 0;
@@ -529,19 +529,6 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
 
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld)
 
-    MaterialInputs material = (MaterialInputs)0;
-    initMaterial(material);
-    material.baseColor = float4(s.diffColor.xyz, s.alpha);
-    #if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
-    material.glossiness = s.smoothness;
-    material.specularColor = s.specColor;
-    #endif
-    material.ambientOcclusion = Occlusion(i.tex.xy);
-    material.emissive = float4(Emission(i.tex.xy), 1.0);
-    #if _NORMALMAP
-    material.normal = s.normal; // tangent-space normal
-    #endif
-
     ShadingParams shading = (ShadingParams)0;
     // Initialize shading with expected parameters
     float3x3 tangentToWorld;
@@ -554,6 +541,19 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
     shading.position = s.posWorld;
     shading.view = -s.eyeVec;
     shading.attenuation = atten;
+
+    MaterialInputs material = (MaterialInputs)0;
+    initMaterial(material);
+    material.baseColor = float4(s.diffColor.xyz, s.alpha);
+    #if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
+    material.glossiness = s.smoothness;
+    material.specularColor = s.specColor;
+    #endif
+    material.ambientOcclusion = Occlusion(i.tex.xy);
+    material.emissive = float4(Emission(i.tex.xy), 1.0);
+    #if _NORMALMAP
+    material.normal = s.normal; // tangent-space normal
+    #endif
 
     prepareMaterial(shading, material);
 
