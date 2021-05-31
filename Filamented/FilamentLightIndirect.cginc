@@ -14,6 +14,12 @@
 // Number of spherical harmonics bands (1, 2 or 3)
 #define SPHERICAL_HARMONICS_BANDS           3
 
+// Whether to use Geometrics' deringing lightprobe sampling.
+#define SPHERICAL_HARMONICS_DEFAULT         0
+#define SPHERICAL_HARMONICS_GEOMETRICS      1
+
+#define SPHERICAL_HARMONICS SPHERICAL_HARMONICS_GEOMETRICS
+
 // IBL integration algorithm
 #define IBL_INTEGRATION_PREFILTERED_CUBEMAP         0
 #define IBL_INTEGRATION_IMPORTANCE_SAMPLING         1 // Not supported!
@@ -59,6 +65,35 @@ float3 prefilteredDFG(float perceptualRoughness, float NoV) {
 // IBL irradiance implementations
 //------------------------------------------------------------------------------
 
+/* http://www.geomerics.com/wp-content/uploads/2015/08/CEDEC_Geomerics_ReconstructingDiffuseLighting1.pdf */
+float shEvaluateDiffuseL1Geomerics_local(float L0, float3 L1, float3 n)
+{
+    // average energy
+    // Add max0 to fix an issue caused by probes having a negative ambient component (???)
+    // I'm not sure how normal that is but this can't handle it
+    float R0 = max(L0, 0);
+
+    // avg direction of incoming light
+    float3 R1 = 0.5f * L1;
+
+    // directional brightness
+    float lenR1 = length(R1);
+
+    // linear angle between normal and direction 0-1
+    float q = dot(normalize(R1), n) * 0.5 + 0.5;
+    q = saturate(q); // Thanks to ScruffyRuffles for the bug identity.
+
+    // power for q
+    // lerps from 1 (linear) to 3 (cubic) based on directionality
+    float p = 1.0f + 2.0f * lenR1 / R0;
+
+    // dynamic range constant
+    // should vary between 4 (highly directional) and 0 (ambient)
+    float a = (1.0f - lenR1 / R0) / (1.0f + lenR1 / R0);
+
+    return R0 * (a + (1.0f - a) * (p + 1.0f) * pow(q, p));
+}
+
 float3 Irradiance_SphericalHarmonics(const float3 n) {
     /*
     return max(
@@ -77,7 +112,20 @@ float3 Irradiance_SphericalHarmonics(const float3 n) {
 #endif
         , 0.0);
     */
+    #if defined(SPHERICAL_HARMONICS_DEFAULT)
     return ShadeSH9(float4(n, 1));
+    #endif
+    #if defined(SPHERICAL_HARMONICS_GEOMETRICS)
+    float3 L0 = float3(unity_SHAr.w, unity_SHAg.w, unity_SHAb.w)
+    + float3(unity_SHBr.z, unity_SHBg.z, unity_SHBb.z) / 3.0;
+    float3 nonLinearSH = float3(0,0,0); 
+    nonLinearSH.r = shEvaluateDiffuseL1Geomerics_local(L0.r, unity_SHAr.xyz, n);
+    nonLinearSH.g = shEvaluateDiffuseL1Geomerics_local(L0.g, unity_SHAg.xyz, n);
+    nonLinearSH.b = shEvaluateDiffuseL1Geomerics_local(L0.b, unity_SHAb.xyz, n);
+    nonLinearSH = max(nonLinearSH, 0);
+    return nonLinearSH;
+    #endif
+    return 0.0;
 }
 
 /*
