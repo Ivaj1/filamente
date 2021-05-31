@@ -297,7 +297,9 @@ float4 evaluateLights(const ShadingParams shading, const MaterialInputs material
 
     // We always evaluate the IBL as not having one is going to be uncommon,
     // it also saves 1 shader variant
+#if defined(UNITY_PASS_FORWARDBASE)
     evaluateIBL(shading, material, pixel, color);
+#endif
 
 #if defined(HAS_DIRECTIONAL_LIGHTING)
     evaluateDirectionalLight(shading, material, pixel, color);
