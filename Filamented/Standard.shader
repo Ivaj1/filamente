@@ -85,7 +85,7 @@ Shader "Silent/Filamented"
         // Specular Glossiness is used because it lines up with what 
         // Standard shader's FragmentSetup produces. 
         // However, FragmentSetup should be replaced with MaterialSetup later. 
-        #define SHADING_MODEL_SPECULAR_GLOSSINESS
+        //#define SHADING_MODEL_SPECULAR_GLOSSINESS
         
         #if _NORMALMAP
         #define HAS_ATTRIBUTE_TANGENTS 
