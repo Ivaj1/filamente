@@ -293,31 +293,22 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
     return o;
 }
 
-half4 fragForwardBaseInternal (VertexOutputForwardBase i)
+void computeShadingParamsForwardBase(inout ShadingParams shading, VertexOutputForwardBase i)
 {
-    UNITY_APPLY_DITHER_CROSSFADE(i.pos.xy);
-
-    MATERIAL_SETUP(material)
-
-    UNITY_SETUP_INSTANCE_ID(i);
-    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-
-    ShadingParams shading = (ShadingParams)0;
-    // Initialize shading with expected parameters
     float3x3 tangentToWorld;
     tangentToWorld[0] = i.tangentToWorldAndPackedData[0].xyz;
     tangentToWorld[1] = i.tangentToWorldAndPackedData[1].xyz;
     tangentToWorld[2] = i.tangentToWorldAndPackedData[2].xyz;
     shading.tangentToWorld = transpose(tangentToWorld);
-    shading.geometricNormal = i.tangentToWorldAndPackedData[2].xyz;
+    shading.geometricNormal = normalize(i.tangentToWorldAndPackedData[2].xyz);
+
+    shading.normalizedViewportCoord = i.pos.xy * (0.5 / i.pos.w) + 0.5;
+
     shading.normal = (shading.geometricNormal);
     shading.position = IN_WORLDPOS(i);
     shading.view = -NormalizePerPixelNormal(i.eyeVec);
 
-    // Todo
-    // shading.normalizedViewportCoord
-
-    UNITY_LIGHT_ATTENUATION(atten, i, shading.position);
+    UNITY_LIGHT_ATTENUATION(atten, i, shading.position)
     shading.attenuation = atten;
 
     #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
@@ -331,6 +322,21 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
         shading.ambient = i.ambientOrLightmapUV.rgb;
         shading.lightmapUV = 0;
     #endif
+}
+
+half4 fragForwardBaseInternal (VertexOutputForwardBase i)
+{
+    UNITY_APPLY_DITHER_CROSSFADE(i.pos.xy);
+
+    MATERIAL_SETUP(material)
+
+    UNITY_SETUP_INSTANCE_ID(i);
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+
+    ShadingParams shading = (ShadingParams)0;
+    // Initialize shading with expected parameters
+    computeShadingParamsForwardBase(shading, i);
+    
     prepareMaterial(shading, material);
 
     float4 c = evaluateMaterial (shading, material);
@@ -411,6 +417,24 @@ VertexOutputForwardAdd vertForwardAdd (VertexInput v)
     return o;
 }
 
+void computeShadingParamsForwardAdd(inout ShadingParams shading, VertexOutputForwardAdd i)
+{
+    float3x3 tangentToWorld;
+    tangentToWorld[0] = i.tangentToWorldAndLightDir[0].xyz;
+    tangentToWorld[1] = i.tangentToWorldAndLightDir[1].xyz;
+    tangentToWorld[2] = i.tangentToWorldAndLightDir[2].xyz;
+    shading.tangentToWorld = transpose(tangentToWorld);
+    shading.geometricNormal = normalize(i.tangentToWorldAndLightDir[2].xyz);
+
+    shading.normalizedViewportCoord = i.pos.xy * (0.5 / i.pos.w) + 0.5;
+    shading.normal = normalize(shading.geometricNormal);
+    shading.position = IN_WORLDPOS_FWDADD(i);
+    shading.view = -NormalizePerPixelNormal(i.eyeVec);
+
+    UNITY_LIGHT_ATTENUATION(atten, i, shading.position)
+    shading.attenuation = atten;
+}
+
 half4 fragForwardAddInternal (VertexOutputForwardAdd i)
 {
     UNITY_APPLY_DITHER_CROSSFADE(i.pos.xy);
@@ -421,18 +445,7 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
 
     ShadingParams shading = (ShadingParams)0;
     // Initialize shading with expected parameters
-    float3x3 tangentToWorld;
-    tangentToWorld[0] = i.tangentToWorldAndLightDir[0].xyz;
-    tangentToWorld[1] = i.tangentToWorldAndLightDir[1].xyz;
-    tangentToWorld[2] = i.tangentToWorldAndLightDir[2].xyz;
-    shading.tangentToWorld = transpose(tangentToWorld);
-    shading.geometricNormal = i.tangentToWorldAndLightDir[2].xyz;
-    shading.normal = (shading.geometricNormal);
-    shading.position = IN_WORLDPOS_FWDADD(i);
-    shading.view = -NormalizePerPixelNormal(i.eyeVec);
-
-    UNITY_LIGHT_ATTENUATION(atten, i, shading.position)
-    shading.attenuation = atten;
+    computeShadingParamsForwardAdd(shading, i);
 
     prepareMaterial(shading, material);
 
