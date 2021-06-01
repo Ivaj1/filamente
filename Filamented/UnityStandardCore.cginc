@@ -67,35 +67,9 @@ void GetBakedAttenuation(inout float atten, float2 lightmapUV, float3 worldPos)
         atten = UnityMixRealtimeAndBakedShadows(atten, bakedAtten, UnityComputeShadowFade(fadeDist));
     #endif
 }
+
 //-------------------------------------------------------------------------------------
 // Common fragment setup
-
-float3 PerPixelWorldNormal(float4 i_tex, float4 tangentToWorld[3], inout half3 normalTangent)
-{
-    normalTangent = half3(0, 0, 1);
-#ifdef _NORMALMAP
-    half3 tangent = tangentToWorld[0].xyz;
-    half3 binormal = tangentToWorld[1].xyz;
-    half3 normal = tangentToWorld[2].xyz;
-
-    #if UNITY_TANGENT_ORTHONORMALIZE
-        normal = NormalizePerPixelNormal(normal);
-
-        // ortho-normalize Tangent
-        tangent = normalize (tangent - normal * dot(tangent, normal));
-
-        // recalculate Binormal
-        half3 newB = cross(normal, tangent);
-        binormal = newB * sign (dot (newB, binormal));
-    #endif
-
-    normalTangent = NormalInTangentSpace(i_tex);
-    float3 normalWorld = NormalizePerPixelNormal(tangent * normalTangent.x + binormal * normalTangent.y + normal * normalTangent.z); 
-#else
-    float3 normalWorld = normalize(tangentToWorld[2].xyz);
-#endif
-    return normalWorld;
-}
 
 #ifdef _PARALLAXMAP
     #define IN_VIEWDIR4PARALLAX(i) NormalizePerPixelNormal(half3(i.tangentToWorldAndPackedData[0].w,i.tangentToWorldAndPackedData[1].w,i.tangentToWorldAndPackedData[2].w))
@@ -125,15 +99,10 @@ float3 PerPixelWorldNormal(float4 i_tex, float4 tangentToWorld[3], inout half3 n
 #define MATERIAL_SETUP_FWDADD(x) MaterialInputs x = \
     MaterialSetup(i.tex, i.eyeVec.xyz, IN_VIEWDIR4PARALLAX_FWDADD(i), i.tangentToWorldAndLightDir, IN_WORLDPOS_FWDADD(i));
 
-#ifndef UNITY_SETUP_BRDF_INPUT
-    #define UNITY_SETUP_BRDF_INPUT SpecularSetup
-#endif
-
 #if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
 #define SETUP_BRDF_INPUT SpecularMaterialSetup
 inline MaterialInputs SpecularMaterialSetup (float4 i_tex)
 {   
-
     half4 baseColor = half4(Albedo(i_tex), Alpha(i_tex));
     half4 specGloss = SpecularGloss(i_tex.xy);
     half3 specColor = specGloss.rgb;
@@ -345,6 +314,9 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     shading.position = IN_WORLDPOS(i);
     shading.view = -NormalizePerPixelNormal(i.eyeVec);
 
+    // Todo
+    // shading.normalizedViewportCoord
+
     UNITY_LIGHT_ATTENUATION(atten, i, shading.position);
     shading.attenuation = atten;
 
@@ -360,9 +332,6 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
         shading.lightmapUV = 0;
     #endif
     prepareMaterial(shading, material);
-
-    // Todo
-    // shading.normalizedViewportCoord
 
     float4 c = evaluateMaterial (shading, material);
 
