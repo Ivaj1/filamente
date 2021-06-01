@@ -336,7 +336,7 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
     ShadingParams shading = (ShadingParams)0;
     // Initialize shading with expected parameters
     computeShadingParamsForwardBase(shading, i);
-    
+
     prepareMaterial(shading, material);
 
     float4 c = evaluateMaterial (shading, material);

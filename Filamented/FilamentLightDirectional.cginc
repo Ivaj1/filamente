@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 
 #ifndef FILAMENT_QUALITY
-//#define SUN_AS_AREA_LIGHT
+#define SUN_AS_AREA_LIGHT
 #else
 #if FILAMENT_QUALITY < FILAMENT_QUALITY_HIGH
 #define SUN_AS_AREA_LIGHT
@@ -15,9 +15,13 @@
 #endif
 
 float3 sampleSunAreaLight(const float3 lightDirection, const ShadingParams shading) {
-    // Replace frameUniforms.sun
-    float4 sunParameters = -1;
+    // Replaced frameUniforms.sun
 #if defined(SUN_AS_AREA_LIGHT)
+    // cos(sunAngle), sin(sunAngle), 1/(sunAngle*HALO_SIZE-sunAngle), HALO_EXP
+    static const float sunAngle = 0.00951f;
+    static const float sunHaloSize = 10.0f;
+    static const float sunHaloFalloff = 80.0f;
+    static const float4 sunParameters = float4(cos(sunAngle), sin(sunAngle), 1/(sunAngle*sunHaloSize-sunAngle), sunHaloFalloff);
     if (sunParameters.w >= 0.0) {
         // simulate sun as disc area light
         float LoR = dot(lightDirection, shading.reflected);
@@ -33,7 +37,6 @@ float3 sampleSunAreaLight(const float3 lightDirection, const ShadingParams shadi
 float4 UnityLight_ColorIntensitySeperated() {
     _LightColor0 += 0.000001;
     return float4(_LightColor0.xyz / _LightColor0.w, _LightColor0.w);
-
 }
 
 Light getDirectionalLight(ShadingParams shading) {

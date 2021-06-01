@@ -46,7 +46,6 @@ float3 PrefilteredDFG_LUT(float lod, float NoV) {
 
 float3 prefilteredDFG(float perceptualRoughness, float NoV) {
     // PrefilteredDFG_LUT() takes a LOD, which is sqrt(roughness) = perceptualRoughness
-    // Not supported yet!
     //return PrefilteredDFG_LUT(perceptualRoughness, NoV);
     #if 1
     // Karis' approximation based on Lazarov's
@@ -224,17 +223,6 @@ float3 get_diffuseIrradiance(const float3 n) {
 UnityGIInput InitialiseUnityGIInput(const ShadingParams shading, const PixelParams pixel)
 {
     UnityGIInput d;
-    /*
-    d.light = light;
-    d.atten = atten;
-    #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
-        d.ambient = 0;
-        d.lightmapUV = i_ambientOrLightmapUV;
-    #else
-        d.ambient = i_ambientOrLightmapUV.rgb;
-        d.lightmapUV = 0;
-    #endif
-    */
     d.worldPos = shading.position;
     d.worldViewDir = -shading.view;
     d.probeHDR[0] = unity_SpecCube0_HDR;
@@ -517,7 +505,6 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 
 #if IBL_INTEGRATION == IBL_INTEGRATION_PREFILTERED_CUBEMAP
     //float3 diffuseIrradiance = get_diffuseIrradiance(diffuseNormal);
-    //float3 diffuseIrradiance = UnityGI_Irradiance(shading, diffuseNormal);
     float3 diffuseIrradiance = unityIrradiance;
 #elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
     float3 diffuseIrradiance = isEvaluateDiffuseIBL(pixel, diffuseNormal, shading.view);
