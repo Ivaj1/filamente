@@ -331,8 +331,22 @@ inline float3 Unity_SafeNormalize(float3 inVec)
 }
 #endif // UNITY_STANDARD_BRDF_INCLUDED
 
+half3 TransformToTangentSpace(half3 tangent, half3 binormal, half3 normal, half3 v)
+{
+    // Mali400 shader compiler prefers explicit dot product over using a half3x3 matrix
+    return half3(dot(tangent, v), dot(binormal, v), dot(normal, v));
+}
+
+// R dither mask
+float noiseR2(float2 pixel) {
+    const float a1 = 0.75487766624669276;
+    const float a2 = 0.569840290998;
+    return frac(a1 * float(pixel.x) + a2 * float(pixel.y));
+}
 
 // Uh... Unity?
 #define LambertTerm(x,y) dot(x,y)
+
+//-------------------------------------------------------------------------------------
 
 #endif // UNITY_STANDARD_UTILS_INCLUDED

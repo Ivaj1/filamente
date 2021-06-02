@@ -234,6 +234,10 @@ struct VertexOutputForwardBase
     float3 posWorld                     : TEXCOORD8;
 #endif
 
+#if defined(NORMALMAP_SHADOW)
+    float3 lightDirTS                   : TEXCOORD9;
+#endif
+
     UNITY_VERTEX_INPUT_INSTANCE_ID
     UNITY_VERTEX_OUTPUT_STEREO
 };
@@ -287,6 +291,13 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
         o.tangentToWorldAndPackedData[2].w = viewDirForParallax.z;
     #endif
 
+    #ifdef _TANGENT_TO_WORLD
+    #if defined(NORMALMAP_SHADOW)
+    float3 lightDirWS = normalize(_WorldSpaceLightPos0.xyz - posWorld.xyz * _WorldSpaceLightPos0.w);
+    o.lightDirTS = TransformToTangentSpace(tangentToWorld[0],tangentToWorld[1],tangentToWorld[2],lightDirWS);
+    #endif
+    #endif
+
     UNITY_TRANSFER_FOG_COMBINED_WITH_EYE_VEC(o,o.pos);
     return o;
 }
@@ -337,6 +348,12 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
 
     prepareMaterial(shading, material);
 
+#if defined(NORMALMAP_SHADOW)
+    float noise = noiseR2(i.pos.xy);
+    float nmShade = NormalTangentShadow (i.tex, i.lightDirTS, noise);
+    shading.attenuation = min(shading.attenuation, max(1-nmShade, 0));
+#endif
+
     float4 c = evaluateMaterial (shading, material);
 
     UNITY_EXTRACT_FOG_FROM_EYE_VEC(i);
@@ -364,6 +381,10 @@ struct VertexOutputForwardAdd
     // next ones would not fit into SM2.0 limits, but they are always for SM3.0+
 #if defined(_PARALLAXMAP)
     half3 viewDirForParallax            : TEXCOORD8;
+#endif
+
+#if defined(NORMALMAP_SHADOW)
+    float3 lightDirTS                   : TEXCOORD9;
 #endif
 
     UNITY_VERTEX_OUTPUT_STEREO
@@ -411,6 +432,13 @@ VertexOutputForwardAdd vertForwardAdd (VertexInput v)
         o.viewDirForParallax = mul (rotation, ObjSpaceViewDir(v.vertex));
     #endif
 
+    #ifdef _TANGENT_TO_WORLD
+    #if defined(NORMALMAP_SHADOW)
+    float3 lightDirWS = normalize(_WorldSpaceLightPos0.xyz - posWorld.xyz * _WorldSpaceLightPos0.w);
+    o.lightDirTS = TransformToTangentSpace(tangentToWorld[0],tangentToWorld[1],tangentToWorld[2],lightDirWS);
+    #endif
+    #endif
+
     UNITY_TRANSFER_FOG_COMBINED_WITH_EYE_VEC(o, o.pos);
     return o;
 }
@@ -446,6 +474,12 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
     computeShadingParamsForwardAdd(shading, i);
 
     prepareMaterial(shading, material);
+
+#if defined(NORMALMAP_SHADOW)
+    float noise = noiseR2(i.pos.xy);
+    float nmShade = NormalTangentShadow (i.tex, i.lightDirTS, noise);
+    shading.attenuation = min(shading.attenuation, max(1-nmShade, 0));
+#endif
 
     float4 c = evaluateMaterial (shading, material);
     

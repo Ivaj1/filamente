@@ -290,7 +290,41 @@ float4 Parallax (float4 texcoords, half3 viewDir)
     return texcoords;
 }
 
+#if (defined(_NORMALMAP) && defined(NORMALMAP_SHADOW))
+struct NormalMapShadowsParam
+{
+    float4 uv;
+    float2 dX;
+    float2 dY;
+};
+
+NormalMapShadowsParam InitNormalMapShadowsParam(float4 uv)
+{
+    NormalMapShadowsParam nms;
+ 
+    nms.uv = uv;
+    nms.dX = ddx(uv.xy);
+    nms.dY = ddy(uv.xy);
+
+    return nms;
 }
+
+float3 SampleNormalMap (NormalMapShadowsParam nmsParam, float2 offset) {
+    return NormalInTangentSpace(float4(nmsParam.uv.xy + offset, nmsParam.uv.zw + offset));
+}
+
+#include "SharedNormalShadowLib.hlsl"
+
+float NormalTangentShadow(float4 texcoords, half3 lightDirTS, float noise)
+{
+    float _HeightScale = 0.2;
+    float _ShadowHardness = 50.0;
+    NormalMapShadowsParam nms = InitNormalMapShadowsParam(texcoords);
+    nms.uv = texcoords;
+    return NormalMapShadows (lightDirTS, nms, noise, _HeightScale, _ShadowHardness);
+}
+
+#endif
 
 half getMaskThreshold()
 {
