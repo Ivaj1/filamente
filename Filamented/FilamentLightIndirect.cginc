@@ -34,10 +34,13 @@
 //------------------------------------------------------------------------------
 
 float3 PrefilteredDFG_LUT(float lod, float NoV) {
+    #if defined(USE_DFG_LUT)
     // coord = sqrt(linear_roughness), which is the mapping used by cmgen.
-    //return textureLod(light_iblDFG, vec2(NoV, lod), 0.0).rgb;
-    // Not supported!
-    return float3(1.0, 0.0, 0.0); 
+    return tex2Dlod(_DFG, float4(NoV, lod, 0, 0)).rgb;
+    #else
+    // Texture not available
+    return float3(1.0, 0.0, 0.0);
+    #endif
 }
 
 //------------------------------------------------------------------------------
@@ -45,18 +48,21 @@ float3 PrefilteredDFG_LUT(float lod, float NoV) {
 //------------------------------------------------------------------------------
 
 float3 prefilteredDFG(float perceptualRoughness, float NoV) {
-    // PrefilteredDFG_LUT() takes a LOD, which is sqrt(roughness) = perceptualRoughness
-    //return PrefilteredDFG_LUT(perceptualRoughness, NoV);
-    #if 1
-    // Karis' approximation based on Lazarov's
-    const float4 c0 = float4(-1.0, -0.0275, -0.572,  0.022);
-    const float4 c1 = float4( 1.0,  0.0425,  1.040, -0.040);
-    float4 r = perceptualRoughness * c0 + c1;
-    float a004 = min(r.x * r.x, exp2(-9.28 * NoV)) * r.x + r.y;
-    return (float3(float2(-1.04, 1.04) * a004 + r.zw, 0.0));
+    #if defined(USE_DFG_LUT)
+        // PrefilteredDFG_LUT() takes a LOD, which is sqrt(roughness) = perceptualRoughness
+        return PrefilteredDFG_LUT(perceptualRoughness, NoV);
     #else
-    // Zioma's approximation based on Karis
-    return float3(float2(1.0, pow(1.0 - max(perceptualRoughness, NoV), 3.0)), 0.0);
+        #if 1
+        // Karis' approximation based on Lazarov's
+        const float4 c0 = float4(-1.0, -0.0275, -0.572,  0.022);
+        const float4 c1 = float4( 1.0,  0.0425,  1.040, -0.040);
+        float4 r = perceptualRoughness * c0 + c1;
+        float a004 = min(r.x * r.x, exp2(-9.28 * NoV)) * r.x + r.y;
+        return (float3(float2(-1.04, 1.04) * a004 + r.zw, 0.0));
+        #else
+        // Zioma's approximation based on Karis
+        return float3(float2(1.0, pow(1.0 - max(perceptualRoughness, NoV), 3.0)), 0.0);
+        #endif
     #endif
 }
 
@@ -353,15 +359,13 @@ float3 getSpecularDominantDirection(const float3 n, const float3 r, float roughn
 }
 
 float3 specularDFG(const PixelParams pixel) {
-    /*
+    // Disabled until DFG is implemented properly
+    return pixel.f0;
 #if defined(SHADING_MODEL_CLOTH)
     return pixel.f0 * pixel.dfg.z;
 #else
-    return lerp(pixel.dfg.xxx, pixel.dfg.yyy, pixel.f0);
+    return lerp(pixel.dfg.x, pixel.dfg.y, pixel.f0);
 #endif
-    */
-    // Disabled until useable
-    return pixel.f0;
 }
 
 /**

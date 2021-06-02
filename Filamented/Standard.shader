@@ -40,6 +40,8 @@ Shader "Silent/Filamented"
         [Enum(UV0,0,UV1,1)] _UVSec ("UV Set for secondary textures", Float) = 0
 
 
+        [NonModifiableTextureProperty][HideInInspector] _DFG("DFG", 2D) = "white" {}
+
         // Blending state
         [HideInInspector] _Mode ("__mode", Float) = 0.0
         [HideInInspector] _SrcBlend ("__src", Float) = 1.0
@@ -78,6 +80,12 @@ Shader "Silent/Filamented"
         #endif
 
         // #define LIGHTMAP_SPECULAR
+
+        //#define USE_DFG_LUT
+        
+        #if defined(USE_DFG_LUT)
+        uniform sampler2D _DFG;
+        #endif
         // #define MATERIAL_HAS_ANISOTROPY
         // #define MATERIAL_HAS_CLEAR_COAT
 
