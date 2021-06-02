@@ -7,6 +7,17 @@
 #include "UnityStandardConfig.cginc"
 #include "UnityStandardUtils.cginc"
 
+//------------------------------------------------------------------------------
+// Input configuration
+//------------------------------------------------------------------------------
+
+// Parallax settings
+#define PARALLAX_NONE                 0
+#define PARALLAX_ONESTEP              1
+#define PARALLAX_RAYMARCH             2
+
+#define PARALLAX_OPERATOR             PARALLAX_RAYMARCH
+
 //---------------------------------------
 // Directional lightmaps & Parallax require tangent space too
 #if (_NORMALMAP || DIRLIGHTMAP_COMBINED || _PARALLAXMAP)
@@ -223,16 +234,61 @@ half3 NormalInTangentSpace(float4 texcoords)
 }
 #endif
 
+struct PerPixelHeightDisplacementParam
+{
+    float2 uv;
+    float2 dX;
+    float2 dY;
+};
+
+PerPixelHeightDisplacementParam InitPerPixelHeightDisplacementParam(float2 uv)
+{
+    PerPixelHeightDisplacementParam ppd;
+ 
+    ppd.uv = uv;
+    ppd.dX = ddx(uv);
+    ppd.dY = ddy(uv);
+
+    return ppd;
+}
+
+float ComputePerPixelHeightDisplacement(float2 offset, float lod, PerPixelHeightDisplacementParam ppdParam)
+{
+    float height = 1;
+    float strength = _Parallax;
+    // Probably can use LOD to skip reading if too far
+    height = 
+        tex2Dgrad(_ParallaxMap, ppdParam.uv + offset, ppdParam.dX, ppdParam.dY).g;
+
+    height = clamp(height, 0, 0.9999);
+
+    return height;
+}
+
+#include "SharedParallaxLib.hlsl"
+
 float4 Parallax (float4 texcoords, half3 viewDir)
 {
-#if !defined(_PARALLAXMAP) || (SHADER_TARGET < 30)
+#if !defined(_PARALLAXMAP) || (SHADER_TARGET < 30) || (PARALLAX_OPERATOR == PARALLAX_NONE)
     // Disable parallax on pre-SM3.0 shader target models
     return texcoords;
 #else
+#if (PARALLAX_OPERATOR == PARALLAX_ONESTEP)
     half h = tex2D (_ParallaxMap, texcoords.xy).g;
     float2 offset = ParallaxOffset1Step (h, _Parallax, viewDir);
     return float4(texcoords.xy + offset, texcoords.zw + offset);
 #endif
+#if (PARALLAX_OPERATOR == PARALLAX_RAYMARCH)
+    PerPixelHeightDisplacementParam ppd = InitPerPixelHeightDisplacementParam(texcoords.xy);
+    float height = 1.0;
+    viewDir = normalize(viewDir);
+    viewDir.xy /= (viewDir.z + 0.42); 
+    float2 offset = ParallaxRaymarching(viewDir, ppd, _Parallax, height);
+    return float4(texcoords.xy + offset, texcoords.zw + offset);
+#endif
+#endif
+    return texcoords;
+}
 
 }
 
