@@ -77,6 +77,7 @@ Shader "Silent/Filamented"
         #define BLEND_MODE_MASKED 
         #endif
 
+        // #define LIGHTMAP_SPECULAR
         // #define MATERIAL_HAS_ANISOTROPY
         // #define MATERIAL_HAS_CLEAR_COAT
 

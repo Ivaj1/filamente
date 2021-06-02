@@ -134,11 +134,50 @@ float3 Irradiance_RoughnessOne(const float3 n) {
 }
 */
 
+float4 UnityLightmap_ColorIntensitySeperated(float3 lightmap) {
+    lightmap += 0.000001;
+    return float4(lightmap.xyz / 1, 1);
+}
+
+inline float3 DecodeDirectionalLightmapSpecular(half3 color, half4 dirTex, half3 normalWorld, 
+    const bool isRealtimeLightmap, fixed4 realtimeNormalTex, out Light o_light)
+{
+    o_light = (Light)0;
+    o_light.colorIntensity = float4(color, 1.0);
+    o_light.l = dirTex.xyz * 2 - 1;
+
+    // The length of the direction vector is the light's "directionality", i.e. 1 for all light coming from this direction,
+    // lower values for more spread out, ambient light.
+    half directionality = max(0.001, length(o_light.l));
+    o_light.l /= directionality;
+
+    #ifdef DYNAMICLIGHTMAP_ON
+    if (isRealtimeLightmap)
+    {
+        // Realtime directional lightmaps' intensity needs to be divided by N.L
+        // to get the incoming light intensity. Baked directional lightmaps are already
+        // output like that (including the max() to prevent div by zero).
+        half3 realtimeNormal = realtimeNormalTex.xyz * 2 - 1;
+        o_light.color /= max(0.125, dot(realtimeNormal, o_light.l));
+    }
+    #endif
+
+    // Split light into the directional and ambient parts, according to the directionality factor.
+    half3 ambient = o_light.colorIntensity * (1 - directionality);
+    o_light.colorIntensity = o_light.colorIntensity * directionality;
+    o_light.attenuation = directionality;
+
+    o_light.NoL = saturate(dot(normalWorld, o_light.l));
+
+    return ambient;
+}
+
 // Return light probes or lightmap.
-float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float occlusion)
+float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float occlusion, out Light derivedLight)
 {
     float3 irradiance = shading.ambient;
     occlusion = 1.0;
+    derivedLight = (Light)0;
 
     #if UNITY_SHOULD_SAMPLE_SH
         irradiance = ShadeSHPerPixel(diffuseNormal, shading.ambient, shading.position);
@@ -158,6 +197,11 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float
             #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
                 irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, diffuseNormal);
             #endif
+
+            #if defined(LIGHTMAP_SPECULAR) 
+                irradiance = DecodeDirectionalLightmapSpecular(bakedColor, bakedDirTex, diffuseNormal, false, 0, derivedLight);
+            #endif
+
 
         #else // not directional lightmap
             irradiance += bakedColor;
@@ -471,10 +515,11 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     inout float3 color) {
     float ssao = 1.0; // Not implemented
     float lightmapAO = 1.0; // 
+    Light derivedLight = (Light)0;
 
     // Gather Unity GI data
     UnityGIInput unityData = InitialiseUnityGIInput(shading, pixel);
-    float3 unityIrradiance = UnityGI_Irradiance(shading, shading.normal, lightmapAO);
+    float3 unityIrradiance = UnityGI_Irradiance(shading, shading.normal, lightmapAO, derivedLight);
 
     float diffuseAO = min(material.ambientOcclusion, ssao);
     float specularAO = computeSpecularAO(shading.NoV, diffuseAO*lightmapAO, pixel.roughness);
@@ -527,6 +572,10 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     
     // Note: iblLuminance is already premultiplied by the exposure
     combineDiffuseAndSpecular(pixel, shading.normal, E, Fd, Fr, color);
+
+    #if defined(LIGHTMAP_SPECULAR)
+    if (derivedLight.NoL >= 0.0) color += surfaceShading(shading, pixel, derivedLight, computeMicroShadowing(derivedLight.NoL, material.ambientOcclusion));
+    #endif
 }
 
 #endif // FILAMENT_LIGHT_INDIRECT

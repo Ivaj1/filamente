@@ -25,14 +25,12 @@
 #include "UnityGBuffer.cginc"
 #include "UnityGlobalIllumination.cginc"
 
-#include "FilamentLightIndirect.cginc"
-
 #include "FilamentBRDF.cginc"
 #include "FilamentShadingStandard.cginc"
+#include "FilamentLightIndirect.cginc"
+#include "FilamentLightDirectional.cginc"
 #include "FilamentLightPunctual.cginc"
 #include "FilamentShadingLit.cginc"
-
-#include "FilamentLightDirectional.cginc"
 
 #include "AutoLight.cginc"
 //-------------------------------------------------------------------------------------
