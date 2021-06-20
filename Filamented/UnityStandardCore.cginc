@@ -176,6 +176,10 @@ inline MaterialInputs MaterialSetup (inout float4 i_tex, float3 i_eyeVec, half3 
     #if _NORMALMAP
     material.normal = NormalInTangentSpace(i_tex);
     #endif
+    #if _EMISSION
+    material.emissive.rgb = Emission (i_tex);
+    material.emissive.a = 1.0;
+    #endif
     material.ambientOcclusion = Occlusion(i_tex);
     return material;
 }
