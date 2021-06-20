@@ -184,5 +184,5 @@ Shader "Silent/Filamented"
     }
 
     FallBack "VertexLit"
-    CustomEditor "StandardShaderGUI"
+    CustomEditor "SilentTools.FilamentedStandardShaderGUI"
 }
