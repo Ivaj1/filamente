@@ -97,23 +97,6 @@ void GetBakedAttenuation(inout float atten, float2 lightmapUV, float3 worldPos)
 #define MATERIAL_SETUP_FWDADD(x) MaterialInputs x = \
     MaterialSetup(i.tex, i.eyeVec.xyz, IN_VIEWDIR4PARALLAX_FWDADD(i), i.tangentToWorldAndLightDir, IN_WORLDPOS_FWDADD(i));
 
-#if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
-#define SETUP_BRDF_INPUT SpecularMaterialSetup
-inline MaterialInputs SpecularMaterialSetup (float4 i_tex)
-{   
-    half4 baseColor = half4(Albedo(i_tex), Alpha(i_tex));
-    half4 specGloss = SpecularGloss(i_tex.xy);
-    half3 specColor = specGloss.rgb;
-    half smoothness = specGloss.a;
-
-    MaterialInputs material = (MaterialInputs)0;
-    initMaterial(material);
-    material.baseColor = baseColor;
-    material.specularColor = specColor;
-    material.glossiness = smoothness;
-    return material;
-}
-#endif
 
 // Filament's preferred model, but not Unity's default
 #if defined(SHADING_MODEL_METALLIC_ROUGHNESS)
@@ -132,10 +115,28 @@ inline MaterialInputs RoughnessMaterialSetup (float4 i_tex)
     material.roughness = computeRoughnessFromGlossiness(smoothness);
     return material;
 }
+#else
+
+#if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
+    #define SETUP_BRDF_INPUT SpecularMaterialSetup
+inline MaterialInputs SpecularMaterialSetup (float4 i_tex)
+{   
+    half4 baseColor = half4(Albedo(i_tex), Alpha(i_tex));
+    half4 specGloss = SpecularGloss(i_tex.xy);
+    half3 specColor = specGloss.rgb;
+    half smoothness = specGloss.a;
+
+    MaterialInputs material = (MaterialInputs)0;
+    initMaterial(material);
+    material.baseColor = baseColor;
+    material.specularColor = specColor;
+    material.glossiness = smoothness;
+    return material;
+}
 #endif
 
-#if !defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
-#define SETUP_BRDF_INPUT MetallicMaterialSetup
+#if (!defined(SHADING_MODEL_SPECULAR_GLOSSINESS))
+    #define SETUP_BRDF_INPUT MetallicMaterialSetup
 inline MaterialInputs MetallicMaterialSetup (float4 i_tex)
 {   
     half4 baseColor = half4(Albedo(i_tex), Alpha(i_tex));
@@ -150,6 +151,7 @@ inline MaterialInputs MetallicMaterialSetup (float4 i_tex)
     material.roughness = computeRoughnessFromGlossiness(smoothness);
     return material;
 }
+#endif
 #endif
 
 #ifndef SETUP_BRDF_INPUT 
