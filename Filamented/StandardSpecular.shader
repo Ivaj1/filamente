@@ -40,6 +40,7 @@ Shader "Silent/Filamented (Specular setup)"
 
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
 
+        [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
 
         // Blending state
         [HideInInspector] _Mode ("__mode", Float) = 0.0
