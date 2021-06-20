@@ -17,5 +17,10 @@ Download the repository. Then place the folder with the shader into your Assets/
 Currently, only the features of the Standard shader are supported. The next goal is to add an interface for enabling the other modes (clear coat and anisotropy) and other shading models. 
 
 ## License?
-Apache license. 
+Licensed under the Apache license. 
+
+Filament code is included under the Apache license. 
+Copyright (C) 2020 Google, Inc.
+
 Some Unity files may additionally be covered by the MIT license.
+Copyright (c) 2016 Unity Technologies.
