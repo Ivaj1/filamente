@@ -3,6 +3,59 @@
 #ifndef UNITY_STANDARD_CONFIG_INCLUDED
 #define UNITY_STANDARD_CONFIG_INCLUDED
 
+// Filamented configuration
+
+// Whether to read the _DFG texture for DFG instead of the approximate one. 
+//#define USE_DFG_LUT
+
+#define SPECULAR_AMBIENT_OCCLUSION SPECULAR_AO_SIMPLE
+#define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
+#define GEOMETRIC_SPECULAR_AA
+static const float _specularAntiAliasingVariance = 0.25;
+static const float _specularAntiAliasingThreshold = 0.25;
+
+// Filament cross-compatibility defines
+
+#if DIRECTIONAL
+#define HAS_DIRECTIONAL_LIGHTING 
+#endif
+#if (POINT || SPOT)
+#define HAS_DYNAMIC_LIGHTING 
+#endif
+#if _EMISSION
+#define MATERIAL_HAS_EMISSIVE 
+#endif
+#if (SHADOWS_SCREEN || SHADOWS_SHADOWMASK || LIGHTMAP_SHADOW)
+#define HAS_SHADOWING 
+#endif
+
+// OcclusionMap is always defined
+#define MATERIAL_HAS_AMBIENT_OCCLUSION 
+
+#if _ALPHAPREMULTIPLY_ON
+#define BLEND_MODE_TRANSPARENT 
+#endif
+#if _ALPHABLEND_ON
+#define BLEND_MODE_FADE 
+#endif
+#if _ALPHATEST_ON
+#define BLEND_MODE_MASKED 
+#endif
+
+#if _NORMALMAP
+#define HAS_ATTRIBUTE_TANGENTS 
+#define MATERIAL_HAS_NORMAL
+//#define NORMALMAP_SHADOW
+#endif
+
+#if 1
+#define LIGHTMAP_SPECULAR
+#endif
+
+#if defined(USE_DFG_LUT)
+uniform sampler2D _DFG;
+#endif
+
 // Define Specular cubemap constants
 #ifndef UNITY_SPECCUBE_LOD_EXPONENT
 #define UNITY_SPECCUBE_LOD_EXPONENT (1.5)

@@ -38,6 +38,8 @@ Shader "Silent/Filamented (Specular setup)"
 
         [Enum(UV0,0,UV1,1)] _UVSec ("UV Set for secondary textures", Float) = 0
 
+        [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
+
 
         // Blending state
         [HideInInspector] _Mode ("__mode", Float) = 0.0
@@ -48,60 +50,15 @@ Shader "Silent/Filamented (Specular setup)"
 
     CGINCLUDE
         #define UNITY_SETUP_BRDF_INPUT SpecularSetup
-
-        // Filament crosscompatibility defined
-        // Move these later!
-        #if DIRECTIONAL
-        #define HAS_DIRECTIONAL_LIGHTING 
-        #endif
-        #if (POINT || SPOT)
-        #define HAS_DYNAMIC_LIGHTING 
-        #endif
-        #if _EMISSION
-        #define MATERIAL_HAS_EMISSIVE 
-        #endif
-        #if (SHADOWS_SCREEN || SHADOWS_SHADOWMASK || LIGHTMAP_SHADOW)
-        #define HAS_SHADOWING 
-        #endif
-
-        #define MATERIAL_HAS_AMBIENT_OCCLUSION 
-
-        #if _ALPHAPREMULTIPLY_ON
-        #define BLEND_MODE_TRANSPARENT 
-        #endif
-        #if _ALPHABLEND_ON
-        #define BLEND_MODE_FADE 
-        #endif
-        #if _ALPHATEST_ON
-        #define BLEND_MODE_MASKED 
-        #endif
-
-        // #define MATERIAL_HAS_ANISOTROPY
-        // #define MATERIAL_HAS_CLEAR_COAT
-
-        // Sheen/subsurface depend on cloth/subsurface shading
-
-        // Specular Glossiness is used because it lines up with what 
-        // Standard shader's FragmentSetup produces. 
-        // However, FragmentSetup should be replaced with MaterialSetup later. 
         #define SHADING_MODEL_SPECULAR_GLOSSINESS
-        
-        #if _NORMALMAP
-        #define HAS_ATTRIBUTE_TANGENTS 
-        #define MATERIAL_HAS_NORMAL
-        #endif
-        
-        #define SPECULAR_AMBIENT_OCCLUSION SPECULAR_AO_SIMPLE
-        #define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
-        #define GEOMETRIC_SPECULAR_AA
-        static const float _specularAntiAliasingVariance = 0.25;
-        static const float _specularAntiAliasingThreshold = 0.25;
     ENDCG
 
     SubShader
     {
         Tags { "RenderType"="Opaque" "PerformanceChecks"="False" }
         LOD 300
+
+        Cull [_CullMode]
 
         // ------------------------------------------------------------------
         //  Base forward pass (directional light, emission, lightmaps, ...)
