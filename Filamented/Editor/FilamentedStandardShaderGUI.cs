@@ -115,7 +115,7 @@ namespace SilentTools
             else
                 m_WorkflowMode = WorkflowMode.Dielectric;
             roughness = FindProperty("_Glossiness", props);
-            roughnessMap = FindProperty("_SpecGlossMap", props);
+            roughnessMap = FindProperty("_SpecGlossMap", props, false);
             smoothness = FindProperty("_Glossiness", props);
             smoothnessScale = FindProperty("_GlossMapScale", props, false);
             smoothnessMapChannel = FindProperty("_SmoothnessTextureChannel", props, false);
@@ -437,10 +437,18 @@ namespace SilentTools
             // Note: keywords must be based on Material value not on MaterialProperty due to multi-edit & material animation
             // (MaterialProperty value might come from renderer material property block)
             SetKeyword(material, "_NORMALMAP", material.GetTexture("_BumpMap") || material.GetTexture("_DetailNormalMap"));
-            if (workflowMode == WorkflowMode.Specular)
+            if (workflowMode == WorkflowMode.Roughness)
+            {
                 SetKeyword(material, "_SPECGLOSSMAP", material.GetTexture("_SpecGlossMap"));
-            else if (workflowMode == WorkflowMode.Metallic)
                 SetKeyword(material, "_METALLICGLOSSMAP", material.GetTexture("_MetallicGlossMap"));
+            } 
+            else 
+            {
+                if (workflowMode == WorkflowMode.Specular)
+                    SetKeyword(material, "_SPECGLOSSMAP", material.GetTexture("_SpecGlossMap"));
+                else if (workflowMode == WorkflowMode.Metallic)
+                    SetKeyword(material, "_METALLICGLOSSMAP", material.GetTexture("_MetallicGlossMap"));
+            }
             SetKeyword(material, "_PARALLAXMAP", material.GetTexture("_ParallaxMap"));
             SetKeyword(material, "_DETAIL_MULX2", material.GetTexture("_DetailAlbedoMap") || material.GetTexture("_DetailNormalMap"));
 
