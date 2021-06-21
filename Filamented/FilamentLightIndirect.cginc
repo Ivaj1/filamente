@@ -290,13 +290,48 @@ UnityGIInput InitialiseUnityGIInput(const ShadingParams shading, const PixelPara
     return d;
 }
 
+float perceptualRoughnessToLod(float perceptualRoughness) {
+    const float iblRoughnessOneLevel = 1.0/UNITY_SPECCUBE_LOD_STEPS;
+    // The mapping below is a quadratic fit for log2(perceptualRoughness)+iblRoughnessOneLevel when
+    // iblRoughnessOneLevel is 4. We found empirically that this mapping works very well for
+    // a 256 cubemap with 5 levels used. But also scales well for other iblRoughnessOneLevel values.
+    //return iblRoughnessOneLevel * perceptualRoughness * (2.0 - perceptualRoughness);
+    // Unity's remapping
+    return iblRoughnessOneLevel * perceptualRoughness * (1.7 - 0.7 * perceptualRoughness);
+}
+
+float3 prefilteredRadiance(const float3 r, float perceptualRoughness) {
+    float lod = perceptualRoughnessToLod(perceptualRoughness);
+    return DecodeHDR(UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, r, lod), unity_SpecCube0_HDR);
+}
+
+float3 prefilteredRadiance(const float3 r, float roughness, float offset) {
+    const float iblRoughnessOneLevel = 1.0/UNITY_SPECCUBE_LOD_STEPS;
+    float lod = iblRoughnessOneLevel * roughness;
+    return DecodeHDR(UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, r, lod + offset), unity_SpecCube0_HDR);
+}
+
+half3 Unity_GlossyEnvironment_local (UNITY_ARGS_TEXCUBE(tex), half4 hdr, Unity_GlossyEnvironmentData glossIn)
+{
+    half perceptualRoughness = glossIn.roughness /* perceptualRoughness */ ;
+    // Unity derivation
+    // perceptualRoughness = perceptualRoughness*(1.7 - 0.7*perceptualRoughness);
+    // Filament derivation
+    perceptualRoughness = perceptualRoughness*(2.0 * perceptualRoughness);
+    half mip = perceptualRoughnessToMipmapLevel(perceptualRoughness);
+    half3 R = glossIn.reflUVW;
+    half4 rgbm = UNITY_SAMPLE_TEXCUBE_LOD(tex, R, mip);
+
+    return DecodeHDR(rgbm, hdr);
+}
+
 // Workaround: Construct the correct Unity variables and get the correct Unity spec values
 
 inline half3 UnityGI_prefilteredRadiance(const UnityGIInput data, const float3 r, float perceptualRoughness)
 {
     half3 specular;
 
-    Unity_GlossyEnvironmentData glossIn;
+    Unity_GlossyEnvironmentData glossIn = (Unity_GlossyEnvironmentData)0;
     glossIn.roughness = perceptualRoughness;
     glossIn.reflUVW = r;
 
@@ -309,7 +344,7 @@ inline half3 UnityGI_prefilteredRadiance(const UnityGIInput data, const float3 r
     #ifdef _GLOSSYREFLECTIONS_OFF
         specular = unity_IndirectSpecColor.rgb;
     #else
-        half3 env0 = Unity_GlossyEnvironment (UNITY_PASS_TEXCUBE(unity_SpecCube0), data.probeHDR[0], glossIn);
+        half3 env0 = Unity_GlossyEnvironment_local (UNITY_PASS_TEXCUBE(unity_SpecCube0), data.probeHDR[0], glossIn);
         #ifdef UNITY_SPECCUBE_BLENDING
             const float kBlendFactor = 0.99999;
             float blendLerp = data.boxMin[0].w;
@@ -320,7 +355,7 @@ inline half3 UnityGI_prefilteredRadiance(const UnityGIInput data, const float3 r
                     glossIn.reflUVW = BoxProjectedCubemapDirection (originalReflUVW, data.worldPos, data.probePosition[1], data.boxMin[1], data.boxMax[1]);
                 #endif
 
-                half3 env1 = Unity_GlossyEnvironment (UNITY_PASS_TEXCUBE_SAMPLER(unity_SpecCube1,unity_SpecCube0), data.probeHDR[1], glossIn);
+                half3 env1 = Unity_GlossyEnvironment_local (UNITY_PASS_TEXCUBE_SAMPLER(unity_SpecCube1,unity_SpecCube0), data.probeHDR[1], glossIn);
                 specular = lerp(env1, env0, blendLerp);
             }
             else
@@ -335,25 +370,6 @@ inline half3 UnityGI_prefilteredRadiance(const UnityGIInput data, const float3 r
     return specular;
 }
 
-float perceptualRoughnessToLod(float perceptualRoughness) {
-    const float iblRoughnessOneLevel = 1.0/UNITY_SPECCUBE_LOD_STEPS;
-    // The mapping below is a quadratic fit for log2(perceptualRoughness)+iblRoughnessOneLevel when
-    // iblRoughnessOneLevel is 4. We found empirically that this mapping works very well for
-    // a 256 cubemap with 5 levels used. But also scales well for other iblRoughnessOneLevel values.
-    return iblRoughnessOneLevel * perceptualRoughness * (2.0 - perceptualRoughness);
-}
-
-float3 prefilteredRadiance(const float3 r, float perceptualRoughness) {
-    float lod = perceptualRoughnessToLod(perceptualRoughness);
-    return (UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, r, lod));
-}
-
-float3 prefilteredRadiance(const float3 r, float roughness, float offset) {
-    const float iblRoughnessOneLevel = 1.0/UNITY_SPECCUBE_LOD_STEPS;
-    float lod = iblRoughnessOneLevel * roughness;
-    return (UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, r, lod + offset));
-}
-
 float3 getSpecularDominantDirection(const float3 n, const float3 r, float roughness) {
     return lerp(r, n, roughness * roughness);
 }
@@ -364,7 +380,7 @@ float3 specularDFG(const PixelParams pixel) {
 #if defined(SHADING_MODEL_CLOTH)
     return pixel.f0 * pixel.dfg.z;
 #else
-    return lerp(pixel.dfg.x, pixel.dfg.y, pixel.f0);
+    return lerp(pixel.dfg.xxx, pixel.dfg.yyy, pixel.f0);
 #endif
 }
 
