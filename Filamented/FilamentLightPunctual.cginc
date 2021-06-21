@@ -10,6 +10,7 @@
 // light model.
 
 float4 UnityLight_ColorIntensitySeperated_Punctual() {
+    if (_LightColor0.w <= 0) return 0.0;
     return float4(_LightColor0.xyz / _LightColor0.w, _LightColor0.w);
 
 }
