@@ -51,15 +51,8 @@ Shader "Silent/Filamented"
     }
 
     CGINCLUDE
-
-// #define MATERIAL_HAS_ANISOTROPY
-// #define MATERIAL_HAS_CLEAR_COAT
-
-// Sheen/subsurface depend on cloth/subsurface shading
-
         // TODO: Figure out what the issue with not having tangents is.
         #define _NORMALMAP 1
-
         #define UNITY_SETUP_BRDF_INPUT MetallicSetup
     ENDCG
 

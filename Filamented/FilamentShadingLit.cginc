@@ -93,7 +93,7 @@ void getCommonPixelParams(const MaterialInputs material, inout PixelParams pixel
     pixel.diffuseColor = baseColor.rgb;
     // If refraction is enabled, and reflectance is not set in the material, but ior is,
     // then use it -- othterwise proceed as usual.
-    pixel.f0 = float3(iorToF0(material.ior, 1.0));
+    pixel.f0 = iorToF0(material.ior, 1.0);
 #else
     pixel.diffuseColor = computeDiffuseColor(baseColor, material.metallic);
     // Assumes an interface from air to an IOR of 1.5 for dielectrics
@@ -128,12 +128,12 @@ void getCommonPixelParams(const MaterialInputs material, inout PixelParams pixel
 #endif
 #if defined(MATERIAL_HAS_ABSORPTION)
 #if defined(MATERIAL_HAS_THICKNESS) || defined(MATERIAL_HAS_MICRO_THICKNESS)
-    pixel.absorption = max(float3(0.0), material.absorption);
+    pixel.absorption = max(0.0, material.absorption);
 #else
     pixel.absorption = saturate(material.absorption);
 #endif
 #else
-    pixel.absorption = float3(0.0);
+    pixel.absorption = 0.0;
 #endif
 #if defined(MATERIAL_HAS_THICKNESS)
     pixel.thickness = max(0.0, material.thickness);

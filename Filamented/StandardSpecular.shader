@@ -50,6 +50,8 @@ Shader "Silent/Filamented (Specular setup)"
     }
 
     CGINCLUDE
+        // TODO: Figure out what the issue with not having tangents is.
+        #define _NORMALMAP 1
         #define UNITY_SETUP_BRDF_INPUT SpecularSetup
         #define SHADING_MODEL_SPECULAR_GLOSSINESS
     ENDCG
