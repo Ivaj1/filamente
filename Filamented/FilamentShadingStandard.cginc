@@ -116,6 +116,11 @@ float3 surfaceShading(const ShadingParams shading, const PixelParams pixel, cons
     float3 Fr = specularLobe(shading, pixel, light, h, NoV, NoL, NoH, LoH) * PI;
     float3 Fd = diffuseLobe(pixel, NoV, NoL, NoH) * PI;
 
+    // Unity toggle for disabling specular highlights.
+#if defined(_SPECULARHIGHLIGHTS_OFF)
+    Fr = 0.0;
+#endif
+
 #if defined(HAS_REFRACTION)
     Fd *= (1.0 - pixel.transmission);
 #endif
