@@ -29,6 +29,9 @@ static const float _specularAntiAliasingThreshold = 0.25;
 #define HAS_SHADOWING 
 #endif
 
+#if (MATERIAL_NEEDS_TBN)
+#define _TANGENT_TO_WORLD
+#endif
 
 #if _ALPHAPREMULTIPLY_ON
 #define BLEND_MODE_TRANSPARENT 
@@ -40,8 +43,10 @@ static const float _specularAntiAliasingThreshold = 0.25;
 #define BLEND_MODE_MASKED 
 #endif
 
+// By default, Standard assumes meshes have normals
+#define HAS_ATTRIBUTE_TANGENTS
+
 #if _NORMALMAP
-#define HAS_ATTRIBUTE_TANGENTS 
 #define MATERIAL_HAS_NORMAL
 //#define NORMALMAP_SHADOW
 #endif

@@ -20,7 +20,7 @@
 
 //---------------------------------------
 // Directional lightmaps & Parallax require tangent space too
-#if (_NORMALMAP || DIRLIGHTMAP_COMBINED || _PARALLAXMAP)
+#if (_NORMALMAP || DIRLIGHTMAP_COMBINED || _PARALLAXMAP || MATERIAL_NEEDS_TBN)
     #define _TANGENT_TO_WORLD 1
 #endif
 

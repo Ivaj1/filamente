@@ -7,7 +7,7 @@
  * vector in world space, the tangent frame at the shading point, etc.
  */
 
-void computeShadingParams(inout ShadingParams shading, float3 vertex_worldNormal, float3 vertex_worldTangent, float3 vertex_worldPosition,
+void computeShadingParams(inout ShadingParams shading, float3 vertex_worldNormal, float4 vertex_worldTangent, float3 vertex_worldPosition,
     float4 vertex_position, float3 frameUniforms_cameraPosition, bool isDoubleSided, bool gl_FrontFacing) {
 #if defined(HAS_ATTRIBUTE_TANGENTS)
     float3 n = vertex_worldNormal;
@@ -30,7 +30,7 @@ void computeShadingParams(inout ShadingParams shading, float3 vertex_worldNormal
 
 #if defined(MATERIAL_NEEDS_TBN)
     // We use unnormalized post-interpolation values, assuming mikktspace tangents
-    shading.tangentToWorld = mat3(t, b, n);
+    shading.tangentToWorld = float3x3(t, b, n);
 #endif
 #endif
 

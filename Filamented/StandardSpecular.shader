@@ -50,8 +50,6 @@ Shader "Silent/Filamented (Specular setup)"
     }
 
     CGINCLUDE
-        // TODO: Figure out what the issue with not having tangents is.
-        #define _NORMALMAP 1
         #define SHADING_MODEL_SPECULAR_GLOSSINESS
         // OcclusionMap is always defined
         #define MATERIAL_HAS_AMBIENT_OCCLUSION 

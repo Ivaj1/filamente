@@ -51,8 +51,6 @@ Shader "Silent/Filamented"
     }
 
     CGINCLUDE
-        // TODO: Figure out what the issue with not having tangents is.
-        #define _NORMALMAP 1
         // OcclusionMap is always defined
         #define MATERIAL_HAS_AMBIENT_OCCLUSION 
     ENDCG
