@@ -29,8 +29,6 @@ static const float _specularAntiAliasingThreshold = 0.25;
 #define HAS_SHADOWING 
 #endif
 
-// OcclusionMap is always defined
-#define MATERIAL_HAS_AMBIENT_OCCLUSION 
 
 #if _ALPHAPREMULTIPLY_ON
 #define BLEND_MODE_TRANSPARENT 
@@ -47,6 +45,8 @@ static const float _specularAntiAliasingThreshold = 0.25;
 #define MATERIAL_HAS_NORMAL
 //#define NORMALMAP_SHADOW
 #endif
+
+//#define MATERIAL_HAS_AMBIENT_OCCLUSION 
 
 #if 1
 #define LIGHTMAP_SPECULAR

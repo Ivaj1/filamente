@@ -186,16 +186,6 @@ inline MaterialInputs MaterialSetup (inout float4 i_tex, float3 i_eyeVec, half3 
 
 
 //-------------------------------------------------------------------------------------
-half4 OutputForward (half4 output, half alphaFromSurface)
-{
-    #if defined(_ALPHABLEND_ON) || defined(_ALPHAPREMULTIPLY_ON)
-        output.a = alphaFromSurface;
-    #else
-        UNITY_OPAQUE_ALPHA(output.a);
-    #endif
-    return output;
-}
-
 inline half4 VertexGIForward(VertexInput v, float3 posWorld, half3 normalWorld)
 {
     half4 ambientOrLightmapUV = 0;

@@ -51,8 +51,11 @@ Shader "Silent/Filamented (Roughness setup)"
 
     CGINCLUDE
         // TODO: Figure out what the issue with not having tangents is.
+#define USE_DFG_LUT
         #define _NORMALMAP 1
         #define SHADING_MODEL_METALLIC_ROUGHNESS
+        // OcclusionMap is always defined
+        #define MATERIAL_HAS_AMBIENT_OCCLUSION 
     ENDCG
 
     SubShader
