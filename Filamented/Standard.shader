@@ -22,7 +22,7 @@ Shader "Silent/Filamented"
         _BumpScale("Scale", Float) = 1.0
         [Normal] _BumpMap("Normal Map", 2D) = "bump" {}
 
-        _Parallax ("Height Scale", Range (0.005, 0.08)) = 0.02
+        _Parallax ("Height Scale", Range (0.005, 0.25)) = 0.02
         _ParallaxMap ("Height Map", 2D) = "black" {}
 
         _OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
