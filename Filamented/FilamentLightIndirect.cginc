@@ -316,9 +316,9 @@ half3 Unity_GlossyEnvironment_local (UNITY_ARGS_TEXCUBE(tex), half4 hdr, Unity_G
 {
     half perceptualRoughness = glossIn.roughness /* perceptualRoughness */ ;
     // Unity derivation
-     perceptualRoughness = perceptualRoughness*(1.7 - 0.7*perceptualRoughness);
+    perceptualRoughness = perceptualRoughness*(1.7 - 0.7 * perceptualRoughness);
     // Filament derivation
-    //perceptualRoughness = perceptualRoughness*(2.0 * perceptualRoughness);
+    // perceptualRoughness = perceptualRoughness * (2.0 - perceptualRoughness);
     half mip = perceptualRoughnessToMipmapLevel(perceptualRoughness);
     half3 R = glossIn.reflUVW;
     half4 rgbm = UNITY_SAMPLE_TEXCUBE_LOD(tex, R, mip);
