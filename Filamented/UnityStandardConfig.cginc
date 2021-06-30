@@ -11,8 +11,8 @@
 #define SPECULAR_AMBIENT_OCCLUSION SPECULAR_AO_SIMPLE
 #define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
 #define GEOMETRIC_SPECULAR_AA
-static const float _specularAntiAliasingVariance = 0.25;
-static const float _specularAntiAliasingThreshold = 0.25;
+#define _specularAntiAliasingVariance 0.15
+#define _specularAntiAliasingThreshold 0.25
 
 // Filament cross-compatibility defines
 
