@@ -595,7 +595,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     combineDiffuseAndSpecular(pixel, shading.normal, E, Fd, Fr, color);
 
     #if defined(LIGHTMAP_SPECULAR)
-    if (derivedLight.NoL >= 0.0) color += surfaceShading(shading, pixel, derivedLight, computeMicroShadowing(derivedLight.NoL, material.ambientOcclusion));
+    if (derivedLight.NoL >= 0.0) color += surfaceShading(shading, pixel, derivedLight, computeMicroShadowing(derivedLight.NoL, material.ambientOcclusion * 0.8 + 0.3));
     #endif
 }
 
