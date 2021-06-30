@@ -62,8 +62,9 @@ float D_GGX(float roughness, float NoH, const float3 h) {
     // This computes 1.0 - NoH^2 directly (which is close to zero in the highlights and has
     // enough precision).
     // Overall this yields better performance, keeping all computations in mediump
-#if defined(TARGET_MOBILE)
-    float3 NxH = cross(shading_normal, h);
+    // Not available without reworking to pass NxH to the function
+#if defined(TARGET_MOBILE) && false
+    float3 NxH = cross(shading.normal, h); 
     float oneMinusNoHSquared = dot(NxH, NxH);
 #else
     float oneMinusNoHSquared = 1.0 - NoH * NoH;
