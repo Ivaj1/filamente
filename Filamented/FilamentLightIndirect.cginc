@@ -194,8 +194,6 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float
         half4 bakedColorTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, shading.lightmapUV.xy);
         half3 bakedColor = DecodeLightmap(bakedColorTex);
 
-        occlusion *= saturate(dot(bakedColor, 5));
-
         #ifdef DIRLIGHTMAP_COMBINED
             fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, shading.lightmapUV.xy);
             irradiance += DecodeDirectionalLightmap (bakedColor, bakedDirTex, diffuseNormal);
@@ -231,6 +229,8 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float
             irradiance += realtimeColor;
         #endif
     #endif
+
+    occlusion *= saturate(length(irradiance) * getExposureOcclusionBias());
 
     return irradiance;
 }

@@ -39,6 +39,9 @@ Shader "Silent/Filamented"
 
         [Enum(UV0,0,UV1,1)] _UVSec ("UV Set for secondary textures", Float) = 0
 
+        // New settings
+        _ExposureOcclusion("Lightmap Occlusion Sensitivity", Range(0, 1)) = 0.2
+
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
 
         [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}

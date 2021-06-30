@@ -61,6 +61,9 @@ half        _UVSec;
 half4       _EmissionColor;
 sampler2D   _EmissionMap;
 
+// New settings
+half       _ExposureOcclusion;
+
 //-------------------------------------------------------------------------------------
 // Input functions
 
@@ -283,7 +286,7 @@ float4 Parallax (float4 texcoords, half3 viewDir)
     float height = 1.0;
     viewDir = normalize(viewDir);
     viewDir.xy /= (viewDir.z + 0.42); 
-    float2 offset = ParallaxRaymarching(viewDir, ppd, _Parallax, height);
+    float2 offset = ParallaxRaymarching(viewDir, ppd, _Parallax, /* out */ height);
     return float4(texcoords.xy + offset, texcoords.zw + offset);
 #endif
 #endif
@@ -329,6 +332,11 @@ float NormalTangentShadow(float4 texcoords, half3 lightDirTS, float noise)
 half getMaskThreshold()
 {
     return _Cutoff;
+}
+
+half getExposureOcclusionBias()
+{
+    return 1.0/(_ExposureOcclusion);
 }
 
 #endif // UNITY_STANDARD_INPUT_INCLUDED

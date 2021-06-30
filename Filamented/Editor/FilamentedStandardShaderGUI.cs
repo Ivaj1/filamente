@@ -51,6 +51,7 @@ namespace SilentTools
             public static GUIContent detailAlbedoText = EditorGUIUtility.TrTextContent("Detail Albedo x2", "Albedo (RGB) multiplied by 2");
             public static GUIContent detailNormalMapText = EditorGUIUtility.TrTextContent("Normal Map", "Normal Map");
             public static GUIContent cullModeText = EditorGUIUtility.TrTextContent("Cull Mode", "Which face of the polygon should be culled from rendering");
+            public static GUIContent exposureOcclusionText = EditorGUIUtility.TrTextContent("Exposure Occlusion", "Controls occlusion of specular lighting by the lightmap");
 
             public static string primaryMapsText = "Main Maps";
             public static string secondaryMapsText = "Secondary Maps";
@@ -89,6 +90,7 @@ namespace SilentTools
         MaterialProperty detailNormalMap = null;
         MaterialProperty uvSetSecondary = null;
         MaterialProperty cullMode = null;
+        MaterialProperty exposureOcclusion = null;
 
         MaterialEditor m_MaterialEditor;
         WorkflowMode m_WorkflowMode = WorkflowMode.Specular;
@@ -135,6 +137,8 @@ namespace SilentTools
             detailNormalMap = FindProperty("_DetailNormalMap", props);
             uvSetSecondary = FindProperty("_UVSec", props);
             cullMode = FindProperty("_CullMode", props);
+
+            exposureOcclusion = FindProperty("_ExposureOcclusion", props, false);
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
@@ -197,6 +201,11 @@ namespace SilentTools
                 if (reflections != null)
                     m_MaterialEditor.ShaderProperty(reflections, Styles.reflectionsText);
 
+                EditorGUILayout.Space();
+
+                // Added properties
+                if (exposureOcclusion != null)
+                    m_MaterialEditor.ShaderProperty(exposureOcclusion, Styles.exposureOcclusionText);
                 EditorGUILayout.Space();
 
                 GUILayout.Label(Styles.advancedText, EditorStyles.boldLabel);
