@@ -115,7 +115,7 @@ Shader "Silent/Filamented"
             ZTest LEqual
 
             CGPROGRAM
-            #pragma target 3.0
+            #pragma target 4.0
 
             // -------------------------------------
 
