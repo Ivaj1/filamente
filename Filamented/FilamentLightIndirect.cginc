@@ -328,12 +328,12 @@ half3 Unity_GlossyEnvironment_local (UNITY_ARGS_TEXCUBE(tex), half4 hdr, Unity_G
 
 // Workaround: Construct the correct Unity variables and get the correct Unity spec values
 
-inline half3 UnityGI_prefilteredRadiance(const UnityGIInput data, const float3 r, float perceptualRoughness)
+inline half3 UnityGI_prefilteredRadiance(const UnityGIInput data, const PixelParams pixel, const float3 r)
 {
     half3 specular;
 
     Unity_GlossyEnvironmentData glossIn = (Unity_GlossyEnvironmentData)0;
-    glossIn.roughness = perceptualRoughness;
+    glossIn.roughness = pixel.perceptualRoughness;
     glossIn.reflUVW = r;
 
     #ifdef UNITY_SPECCUBE_BOX_PROJECTION
@@ -443,7 +443,7 @@ void isEvaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel
 
     PixelParams p;
     p.perceptualRoughness = pixel.clearCoatPerceptualRoughness;
-    p.f0 = float3(0.04);
+    p.f0 = float3(0.04.xxx);
     p.roughness = perceptualRoughnessToRoughness(p.perceptualRoughness);
 #if defined(MATERIAL_HAS_ANISOTROPY)
     p.anisotropy = 0.0;
@@ -550,7 +550,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 #if IBL_INTEGRATION == IBL_INTEGRATION_PREFILTERED_CUBEMAP
     float3 E = specularDFG(pixel);
     float3 r = getReflectedVector(shading, pixel, shading.normal);
-    Fr = E * UnityGI_prefilteredRadiance(unityData, r, pixel.perceptualRoughness);
+    Fr = E * UnityGI_prefilteredRadiance(unityData, pixel, r);
 #elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
     // Not supported
     float3 E = float3(0.0); // TODO: fix for importance sampling
