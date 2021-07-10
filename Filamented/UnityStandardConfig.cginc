@@ -29,6 +29,10 @@
 #define HAS_SHADOWING 
 #endif
 
+#if defined(MATERIAL_HAS_NORMAL)
+#define _NORMALMAP 1
+#endif
+
 #if (MATERIAL_NEEDS_TBN)
 #define _TANGENT_TO_WORLD
 #endif
