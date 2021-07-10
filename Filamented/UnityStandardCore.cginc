@@ -314,13 +314,14 @@ void computeShadingParamsForwardBase(inout ShadingParams shading, VertexOutputFo
     shading.view = -NormalizePerPixelNormal(i.eyeVec);
 
     UNITY_LIGHT_ATTENUATION(atten, i, shading.position)
-    shading.attenuation = atten;
 
-    #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
+    #if (defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON))
     GetBakedAttenuation(atten, i.ambientOrLightmapUV.xy, shading.position);
     #endif
 
-    #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
+    shading.attenuation = atten;
+
+    #if (defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON))
         shading.ambient = 0;
         shading.lightmapUV = i.ambientOrLightmapUV;
     #else
