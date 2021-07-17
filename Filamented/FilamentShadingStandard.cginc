@@ -113,6 +113,9 @@ float3 surfaceShading(const ShadingParams shading, const PixelParams pixel, cons
     float NoH = saturate(dot(shading.normal, h));
     float LoH = saturate(dot(light.l, h));
 
+    // Note: For Unity, specular and diffuse terms must be multiplied by Pi 
+    // to match the light intensities of other shaders.
+    // This is partly because the diffuse term is already divided by Pi here.
     float3 Fr = specularLobe(shading, pixel, light, h, NoV, NoL, NoH, LoH) * PI;
     float3 Fd = diffuseLobe(pixel, NoV, NoL, NoH) * PI;
 
