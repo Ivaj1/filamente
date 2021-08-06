@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 
 #ifndef FILAMENT_QUALITY
-#define SUN_AS_AREA_LIGHT
 #else
 #if FILAMENT_QUALITY < FILAMENT_QUALITY_HIGH
 #define SUN_AS_AREA_LIGHT
