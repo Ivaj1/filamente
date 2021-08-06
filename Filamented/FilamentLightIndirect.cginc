@@ -100,37 +100,39 @@ float shEvaluateDiffuseL1Geomerics_local(float L0, float3 L1, float3 n)
 }
 
 float3 Irradiance_SphericalHarmonics(const float3 n) {
+    // Uses Unity's functions for reading SH. 
+    // However, this function is currently unused. 
+    float3 finalSH = float3(0,0,0); 
+    #if UNITY_LIGHT_PROBE_PROXY_VOLUME
     /*
-    return max(
-          frameUniforms.iblSH[0]
-#if SPHERICAL_HARMONICS_BANDS >= 2
-        + frameUniforms.iblSH[1] * (n.y)
-        + frameUniforms.iblSH[2] * (n.z)
-        + frameUniforms.iblSH[3] * (n.x)
-#endif
-#if SPHERICAL_HARMONICS_BANDS >= 3
-        + frameUniforms.iblSH[4] * (n.y * n.x)
-        + frameUniforms.iblSH[5] * (n.y * n.z)
-        + frameUniforms.iblSH[6] * (3.0 * n.z * n.z - 1.0)
-        + frameUniforms.iblSH[7] * (n.z * n.x)
-        + frameUniforms.iblSH[8] * (n.x * n.x - n.y * n.y)
-#endif
-        , 0.0);
+        if (unity_ProbeVolumeParams.x == 1.0)
+            finalSH = SHEvalLinearL0L1_SampleProbeVolume(half4(n, 1.0), shading.position);
+        else
+            finalSH = SHEvalLinearL0L1(half4(n, 1.0));
+
+        finalSH += SHEvalLinearL2(half4(n, 1.0));
     */
-    #if defined(SPHERICAL_HARMONICS_DEFAULT)
-    return ShadeSH9(float4(n, 1));
+        return max(0, finalSH);
+
+    #else
+        #if defined(SPHERICAL_HARMONICS_DEFAULT)
+            finalSH = SHEvalLinearL0L1(half4(n, 1.0));
+            finalSH += SHEvalLinearL2(half4(n, 1.0));
+        #endif
+
+        #if defined(SPHERICAL_HARMONICS_GEOMETRICS)
+            float3 L0 = float3(unity_SHAr.w, unity_SHAg.w, unity_SHAb.w)
+            + float3(unity_SHBr.z, unity_SHBg.z, unity_SHBb.z) / 3.0;
+            finalSH.r = shEvaluateDiffuseL1Geomerics_local(L0.r, unity_SHAr.xyz, n);
+            finalSH.g = shEvaluateDiffuseL1Geomerics_local(L0.g, unity_SHAg.xyz, n);
+            finalSH.b = shEvaluateDiffuseL1Geomerics_local(L0.b, unity_SHAb.xyz, n);
+            // Quadratic polynomials
+            finalSH += SHEvalLinearL2 (float4(n, 1));
+            finalSH = max(finalSH, 0);
+        #endif
     #endif
-    #if defined(SPHERICAL_HARMONICS_GEOMETRICS)
-    float3 L0 = float3(unity_SHAr.w, unity_SHAg.w, unity_SHAb.w)
-    + float3(unity_SHBr.z, unity_SHBg.z, unity_SHBb.z) / 3.0;
-    float3 nonLinearSH = float3(0,0,0); 
-    nonLinearSH.r = shEvaluateDiffuseL1Geomerics_local(L0.r, unity_SHAr.xyz, n);
-    nonLinearSH.g = shEvaluateDiffuseL1Geomerics_local(L0.g, unity_SHAg.xyz, n);
-    nonLinearSH.b = shEvaluateDiffuseL1Geomerics_local(L0.b, unity_SHAb.xyz, n);
-    nonLinearSH = max(nonLinearSH, 0);
-    return nonLinearSH;
-    #endif
-    return 0.0;
+
+    return finalSH;
 }
 
 /*
@@ -240,30 +242,6 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float
 //------------------------------------------------------------------------------
 
 float3 get_diffuseIrradiance(const float3 n) {
-    /* Not implemented.
-    if (frameUniforms.iblSH[0].x == 65504.0) {
-#if FILAMENT_QUALITY < FILAMENT_QUALITY_HIGH
-        return Irradiance_RoughnessOne(n);
-#else
-        ivec2 s = textureSize(light_iblSpecular, int(frameUniforms.iblRoughnessOneLevel));
-        float du = 1.0 / float(s.x);
-        float dv = 1.0 / float(s.y);
-        float3 m0 = normalize(cross(n, float3(0.0, 1.0, 0.0)));
-        float3 m1 = cross(m0, n);
-        float3 m0du = m0 * du;
-        float3 m1dv = m1 * dv;
-        float3 c;
-        c  = Irradiance_RoughnessOne(n - m0du - m1dv);
-        c += Irradiance_RoughnessOne(n + m0du - m1dv);
-        c += Irradiance_RoughnessOne(n + m0du + m1dv);
-        c += Irradiance_RoughnessOne(n - m0du + m1dv);
-        return c * 0.25;
-#endif
-        return Irradiance_RoughnessOne(n);
-    } else {
-        return Irradiance_SphericalHarmonics(n);
-    }
-    */
         return Irradiance_SphericalHarmonics(n);
 }
 //------------------------------------------------------------------------------
