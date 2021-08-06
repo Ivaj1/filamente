@@ -34,6 +34,8 @@ float3 sampleSunAreaLight(const float3 lightDirection, const ShadingParams shadi
 }
 
 float4 UnityLight_ColorIntensitySeperated() {
+    return float4(_LightColor0.xyz, 1.0);
+
     if (_LightColor0.w <= 0) return 0.0;
     _LightColor0 += 0.000001;
     return float4(_LightColor0.xyz / _LightColor0.w, _LightColor0.w);

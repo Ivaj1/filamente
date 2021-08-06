@@ -10,9 +10,10 @@
 // light model.
 
 float4 UnityLight_ColorIntensitySeperated_Punctual() {
+    return float4(_LightColor0.xyz, 1.0);
+
     if (_LightColor0.w <= 0) return 0.0;
     return float4(_LightColor0.xyz / _LightColor0.w, _LightColor0.w);
-
 }
 
 float getSquareFalloffAttenuation(float distanceSquare, float falloff) {
