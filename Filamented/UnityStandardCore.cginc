@@ -345,7 +345,7 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
 
     prepareMaterial(shading, material);
 
-#if defined(NORMALMAP_SHADOW)
+#if (defined(_NORMALMAP) && defined(NORMALMAP_SHADOW))
     float noise = noiseR2(i.pos.xy);
     float nmShade = NormalTangentShadow (i.tex, i.lightDirTS, noise);
     shading.attenuation = min(shading.attenuation, max(1-nmShade, 0));
@@ -380,7 +380,7 @@ struct VertexOutputForwardAdd
     half3 viewDirForParallax            : TEXCOORD8;
 #endif
 
-#if defined(NORMALMAP_SHADOW)
+#if (defined(_NORMALMAP) && defined(NORMALMAP_SHADOW))
     float3 lightDirTS                   : TEXCOORD9;
 #endif
 
@@ -430,7 +430,7 @@ VertexOutputForwardAdd vertForwardAdd (VertexInput v)
     #endif
 
     #ifdef _TANGENT_TO_WORLD
-    #if defined(NORMALMAP_SHADOW)
+    #if (defined(_NORMALMAP) && defined(NORMALMAP_SHADOW))
     float3 lightDirWS = normalize(_WorldSpaceLightPos0.xyz - posWorld.xyz * _WorldSpaceLightPos0.w);
     o.lightDirTS = TransformToTangentSpace(tangentToWorld[0],tangentToWorld[1],tangentToWorld[2],lightDirWS);
     #endif
@@ -472,7 +472,7 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
 
     prepareMaterial(shading, material);
 
-#if defined(NORMALMAP_SHADOW)
+#if (defined(_NORMALMAP) && defined(NORMALMAP_SHADOW))
     float noise = noiseR2(i.pos.xy);
     float nmShade = NormalTangentShadow (i.tex, i.lightDirTS, noise);
     shading.attenuation = min(shading.attenuation, max(1-nmShade, 0));
