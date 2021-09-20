@@ -6,6 +6,7 @@
 #include "UnityImageBasedLightingMinimal.cginc"
 #include "UnityStandardUtils.cginc"
 #include "UnityLightingCommon.cginc"
+#include "SharedFilteringLib.hlsl"
 
 //------------------------------------------------------------------------------
 // Image based lighting configuration
@@ -147,6 +148,66 @@ float4 UnityLightmap_ColorIntensitySeperated(float3 lightmap) {
     return float4(lightmap.xyz / 1, 1);
 }
 
+float4 SampleLightmapBicubic(float2 uv)
+{
+    #ifdef SHADER_API_D3D11
+        float width, height;
+        unity_Lightmap.GetDimensions(width, height);
+
+        float4 unity_Lightmap_TexelSize = float4(width, height, 1.0/width, 1.0/height);
+
+        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_Lightmap, samplerunity_Lightmap),
+            uv, unity_Lightmap_TexelSize);
+    #else
+        return SAMPLE_TEXTURE2D(unity_Lightmap, samplerunity_Lightmap, uv);
+    #endif
+}
+
+float4 SampleLightmapDirBicubic(float2 uv)
+{
+    #ifdef SHADER_API_D3D11
+        float width, height;
+        unity_LightmapInd.GetDimensions(width, height);
+
+        float4 unity_LightmapInd_TexelSize = float4(width, height, 1.0/width, 1.0/height);
+
+        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_LightmapInd, samplerunity_Lightmap),
+            uv, unity_LightmapInd_TexelSize);
+    #else
+        return SAMPLE_TEXTURE2D(unity_LightmapInd, samplerunity_Lightmap, uv);
+    #endif
+}
+
+float4 SampleDynamicLightmapBicubic(float2 uv)
+{
+    #ifdef SHADER_API_D3D11
+        float width, height;
+        unity_DynamicLightmap.GetDimensions(width, height);
+
+        float4 unity_DynamicLightmap_TexelSize = float4(width, height, 1.0/width, 1.0/height);
+
+        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_DynamicLightmap, samplerunity_DynamicLightmap),
+            uv, unity_DynamicLightmap_TexelSize);
+    #else
+        return SAMPLE_TEXTURE2D(unity_DynamicLightmap, samplerunity_DynamicLightmap, uv);
+    #endif
+}
+
+float4 SampleDynamicLightmapDirBicubic(float2 uv)
+{
+    #ifdef SHADER_API_D3D11
+        float width, height;
+        unity_DynamicLightmap.GetDimensions(width, height);
+
+        float4 unity_DynamicLightmap_TexelSize = float4(width, height, 1.0/width, 1.0/height);
+
+        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_DynamicLightmap, samplerunity_DynamicLightmap),
+            uv, unity_DynamicLightmap_TexelSize);
+    #else
+        return SAMPLE_TEXTURE2D(unity_DynamicLightmap, samplerunity_DynamicLightmap, uv);
+    #endif
+}
+
 inline float3 DecodeDirectionalLightmapSpecular(half3 color, half4 dirTex, half3 normalWorld, 
     const bool isRealtimeLightmap, fixed4 realtimeNormalTex, out Light o_light)
 {
@@ -193,11 +254,12 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float
 
     #if defined(LIGHTMAP_ON)
         // Baked lightmaps
-        half4 bakedColorTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, shading.lightmapUV.xy);
+        
+        half4 bakedColorTex = SampleLightmapBicubic(shading.lightmapUV.xy);
         half3 bakedColor = DecodeLightmap(bakedColorTex);
 
         #ifdef DIRLIGHTMAP_COMBINED
-            fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, shading.lightmapUV.xy);
+            fixed4 bakedDirTex = SampleLightmapDirBicubic (shading.lightmapUV.xy);
             irradiance += DecodeDirectionalLightmap (bakedColor, bakedDirTex, diffuseNormal);
 
             #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
@@ -221,7 +283,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float
 
     #ifdef DYNAMICLIGHTMAP_ON
         // Dynamic lightmaps
-        fixed4 realtimeColorTex = UNITY_SAMPLE_TEX2D(unity_DynamicLightmap, shading.lightmapUV.zw);
+        fixed4 realtimeColorTex = SampleDynamicLightmapBicubic(shading.lightmapUV.zw);
         half3 realtimeColor = DecodeRealtimeLightmap (realtimeColorTex);
 
         #ifdef DIRLIGHTMAP_COMBINED
