@@ -82,15 +82,15 @@ Shader "Silent/Filamented (Roughness setup)"
             // -------------------------------------
 
 
-            #pragma shader_feature _NORMALMAP
-            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature_local _NORMALMAP
+            #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
             #pragma shader_feature _EMISSION
-            #pragma shader_feature _METALLICGLOSSMAP
-            #pragma shader_feature _SPECGLOSSMAP
-            #pragma shader_feature _DETAIL_MULX2
-            #pragma shader_feature _SPECULARHIGHLIGHTS_OFF
-            #pragma shader_feature _GLOSSYREFLECTIONS_OFF
-            #pragma shader_feature _PARALLAXMAP
+            #pragma shader_feature_local _METALLICGLOSSMAP
+            #pragma shader_feature_local _SPECGLOSSMAP
+            #pragma shader_feature_local _DETAIL_MULX2
+            #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
+            #pragma shader_feature_local _PARALLAXMAP
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
@@ -116,18 +116,18 @@ Shader "Silent/Filamented (Roughness setup)"
             ZTest LEqual
 
             CGPROGRAM
-            #pragma target 3.0
+            #pragma target 4.0
 
             // -------------------------------------
 
 
-            #pragma shader_feature _NORMALMAP
-            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-            #pragma shader_feature _METALLICGLOSSMAP
-            #pragma shader_feature _SPECGLOSSMAP
-            #pragma shader_feature _SPECULARHIGHLIGHTS_OFF
-            #pragma shader_feature _DETAIL_MULX2
-            #pragma shader_feature _PARALLAXMAP
+            #pragma shader_feature_local _NORMALMAP
+            #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature_local _METALLICGLOSSMAP
+            #pragma shader_feature_local _SPECGLOSSMAP
+            #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature_local _DETAIL_MULX2
+            #pragma shader_feature_local _PARALLAXMAP
 
             #pragma multi_compile_fwdadd_fullshadows
             #pragma multi_compile_fog
@@ -154,10 +154,10 @@ Shader "Silent/Filamented (Roughness setup)"
             // -------------------------------------
 
 
-            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-            #pragma shader_feature _METALLICGLOSSMAP
-            #pragma shader_feature _SPECGLOSSMAP
-            #pragma shader_feature _PARALLAXMAP
+            #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature_local _METALLICGLOSSMAP
+            #pragma shader_feature_local _SPECGLOSSMAP
+            #pragma shader_feature_local _PARALLAXMAP
             #pragma multi_compile_shadowcaster
             #pragma multi_compile_instancing
             // Uncomment the following line to enable dithering LOD crossfade. Note: there are more in the file to uncomment for other passes.
