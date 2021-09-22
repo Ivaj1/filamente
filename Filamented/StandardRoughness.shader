@@ -53,7 +53,6 @@ Shader "Silent/Filamented (Roughness setup)"
     }
 
     CGINCLUDE
-#define USE_DFG_LUT
         #define SHADING_MODEL_METALLIC_ROUGHNESS
         // OcclusionMap is always defined
         #define MATERIAL_HAS_AMBIENT_OCCLUSION 
