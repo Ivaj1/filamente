@@ -79,6 +79,9 @@ struct VertexInput
 #ifdef _TANGENT_TO_WORLD
     half4 tangent   : TANGENT;
 #endif
+#if defined(HAS_ATTRIBUTE_COLOR)
+    float4 color    : COLOR;
+#endif
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 

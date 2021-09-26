@@ -284,8 +284,12 @@ struct VertexOutputForwardBase
     float3 posWorld                     : TEXCOORD8;
 #endif
 
-#if defined(NORMALMAP_SHADOW)
+#if (defined(_NORMALMAP) && defined(NORMALMAP_SHADOW))
     float3 lightDirTS                   : TEXCOORD9;
+#endif
+
+#if defined(HAS_ATTRIBUTE_COLOR)
+    float4 color                        : COLOR;
 #endif
 
     UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -346,6 +350,10 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
     float3 lightDirWS = normalize(_WorldSpaceLightPos0.xyz - posWorld.xyz * _WorldSpaceLightPos0.w);
     o.lightDirTS = TransformToTangentSpace(tangentToWorld[0],tangentToWorld[1],tangentToWorld[2],lightDirWS);
     #endif
+    #endif
+
+    #if defined(HAS_ATTRIBUTE_COLOR)
+    o.color = v.color;
     #endif
 
     UNITY_TRANSFER_FOG_COMBINED_WITH_EYE_VEC(o,o.pos);
@@ -438,6 +446,10 @@ struct VertexOutputForwardAdd
     float3 lightDirTS                   : TEXCOORD9;
 #endif
 
+#if defined(HAS_ATTRIBUTE_COLOR)
+    float4 color                        : COLOR;
+#endif
+
     UNITY_VERTEX_OUTPUT_STEREO
 };
 
@@ -488,6 +500,10 @@ VertexOutputForwardAdd vertForwardAdd (VertexInput v)
     float3 lightDirWS = normalize(_WorldSpaceLightPos0.xyz - posWorld.xyz * _WorldSpaceLightPos0.w);
     o.lightDirTS = TransformToTangentSpace(tangentToWorld[0],tangentToWorld[1],tangentToWorld[2],lightDirWS);
     #endif
+    #endif
+
+    #if defined(HAS_ATTRIBUTE_COLOR)
+    o.color = v.color;
     #endif
 
     UNITY_TRANSFER_FOG_COMBINED_WITH_EYE_VEC(o, o.pos);
