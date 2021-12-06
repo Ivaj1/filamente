@@ -40,6 +40,8 @@ Shader "Silent/Filamented (Specular setup)"
 
         // New settings
         _ExposureOcclusion("Lightmap Occlusion Sensitivity", Range(0, 1)) = 0.2
+        [Toggle(_LIGHTMAPSPECULAR)]_LightmapSpecular("Lightmap Specular", Range(0, 1)) = 1
+        _LightmapSpecularMaxSmoothness("Lightmap Specular Max Smoothness", Range(0, 1)) = 1
 
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
 

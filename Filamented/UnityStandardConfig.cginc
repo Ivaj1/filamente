@@ -57,7 +57,7 @@
 
 //#define MATERIAL_HAS_AMBIENT_OCCLUSION 
 
-#if 1
+#if defined(_LIGHTMAPSPECULAR)
 #define LIGHTMAP_SPECULAR
 #endif
 

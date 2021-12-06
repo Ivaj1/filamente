@@ -51,7 +51,10 @@ namespace SilentTools
             public static GUIContent detailAlbedoText = EditorGUIUtility.TrTextContent("Detail Albedo x2", "Albedo (RGB) multiplied by 2");
             public static GUIContent detailNormalMapText = EditorGUIUtility.TrTextContent("Normal Map", "Normal Map");
             public static GUIContent cullModeText = EditorGUIUtility.TrTextContent("Cull Mode", "Which face of the polygon should be culled from rendering");
+
             public static GUIContent exposureOcclusionText = EditorGUIUtility.TrTextContent("Exposure Occlusion", "Controls occlusion of specular lighting by the lightmap");
+            public static GUIContent lightmapSpecularText = EditorGUIUtility.TrTextContent("Lightmap Specular", "Allows the material to derive specular lighting from the lightmap directionality.");
+            public static GUIContent lmSpecMaxSmoothnessText = EditorGUIUtility.TrTextContent("Specular Smoothness Mod", "Adjusts the maximum smoothness of the material for lightmap specular to avoid artifacts from imprecise directionality.");
 
             public static string primaryMapsText = "Main Maps";
             public static string secondaryMapsText = "Secondary Maps";
@@ -91,6 +94,8 @@ namespace SilentTools
         MaterialProperty uvSetSecondary = null;
         MaterialProperty cullMode = null;
         MaterialProperty exposureOcclusion = null;
+        MaterialProperty lightmapSpecular = null;
+        MaterialProperty lmSpecMaxSmoothness = null;
 
         MaterialEditor m_MaterialEditor;
         WorkflowMode m_WorkflowMode = WorkflowMode.Specular;
@@ -139,6 +144,8 @@ namespace SilentTools
             cullMode = FindProperty("_CullMode", props);
 
             exposureOcclusion = FindProperty("_ExposureOcclusion", props, false);
+            lightmapSpecular = FindProperty("_LightmapSpecular", props, false);
+            lmSpecMaxSmoothness = FindProperty("_LightmapSpecularMaxSmoothness", props, false);
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
@@ -206,6 +213,11 @@ namespace SilentTools
                 // Added properties
                 if (exposureOcclusion != null)
                     m_MaterialEditor.ShaderProperty(exposureOcclusion, Styles.exposureOcclusionText);
+                if (lightmapSpecular != null)
+                    m_MaterialEditor.ShaderProperty(lightmapSpecular, Styles.lightmapSpecularText);
+                if (lmSpecMaxSmoothness != null)
+                    m_MaterialEditor.ShaderProperty(lmSpecMaxSmoothness, Styles.lmSpecMaxSmoothnessText);
+
                 EditorGUILayout.Space();
 
                 GUILayout.Label(Styles.advancedText, EditorStyles.boldLabel);
@@ -472,6 +484,10 @@ namespace SilentTools
             {
                 SetKeyword(material, "_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A", GetSmoothnessMapChannel(material) == SmoothnessMapChannel.AlbedoAlpha);
             }
+
+            // New properties
+
+            SetKeyword(material, "_LIGHTMAPSPECULAR", material.GetFloat("_LightmapSpecular") == 1? true : false);
         }
 
         static void MaterialChanged(Material material, WorkflowMode workflowMode, bool overrideRenderQueue)

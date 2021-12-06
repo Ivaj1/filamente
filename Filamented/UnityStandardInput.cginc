@@ -63,6 +63,7 @@ sampler2D   _EmissionMap;
 
 // New settings
 half       _ExposureOcclusion;
+half       _LightmapSpecularMaxSmoothness;
 
 //-------------------------------------------------------------------------------------
 // Input functions
@@ -340,6 +341,11 @@ half getMaskThreshold()
 half getExposureOcclusionBias()
 {
     return 1.0/(_ExposureOcclusion);
+}
+
+half getLightmapSpecularMaxSmoothness()
+{
+    return _LightmapSpecularMaxSmoothness;
 }
 
 #endif // UNITY_STANDARD_INPUT_INCLUDED

@@ -41,6 +41,8 @@ Shader "Silent/Filamented"
 
         // New settings
         _ExposureOcclusion("Lightmap Occlusion Sensitivity", Range(0, 1)) = 0.2
+        [Toggle(_LIGHTMAPSPECULAR)]_LightmapSpecular("Lightmap Specular", Range(0, 1)) = 1
+        _LightmapSpecularMaxSmoothness("Lightmap Specular Max Smoothness", Range(0, 1)) = 1
 
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
 
@@ -90,6 +92,8 @@ Shader "Silent/Filamented"
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
             #pragma shader_feature_local _PARALLAXMAP
+            
+            #pragma shader_feature_local _LIGHTMAPSPECULAR
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
