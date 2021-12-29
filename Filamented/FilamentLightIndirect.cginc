@@ -197,14 +197,14 @@ float4 SampleDynamicLightmapDirBicubic(float2 uv)
 {
     #ifdef SHADER_API_D3D11
         float width, height;
-        unity_DynamicLightmap.GetDimensions(width, height);
+        unity_DynamicDirectionality.GetDimensions(width, height);
 
-        float4 unity_DynamicLightmap_TexelSize = float4(width, height, 1.0/width, 1.0/height);
+        float4 unity_DynamicDirectionality_TexelSize = float4(width, height, 1.0/width, 1.0/height);
 
-        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_DynamicLightmap, samplerunity_DynamicLightmap),
-            uv, unity_DynamicLightmap_TexelSize);
+        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_DynamicDirectionality, samplerunity_DynamicLightmap),
+            uv, unity_DynamicDirectionality_TexelSize);
     #else
-        return SAMPLE_TEXTURE2D(unity_DynamicLightmap, samplerunity_DynamicLightmap, uv);
+        return SAMPLE_TEXTURE2D(unity_DynamicDirectionality, samplerunity_DynamicLightmap, uv);
     #endif
 }
 
@@ -287,7 +287,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 diffuseNormal, out float
         half3 realtimeColor = DecodeRealtimeLightmap (realtimeColorTex);
 
         #ifdef DIRLIGHTMAP_COMBINED
-            half4 realtimeDirTex = UNITY_SAMPLE_TEX2D_SAMPLER(unity_DynamicDirectionality, unity_DynamicLightmap, shading.lightmapUV.zw);
+            half4 realtimeDirTex = SampleDynamicLightmapDirBicubic(shading.lightmapUV.zw);
             irradiance += DecodeDirectionalLightmap (realtimeColor, realtimeDirTex, diffuseNormal);
         #else
             irradiance += realtimeColor;
