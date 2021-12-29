@@ -56,6 +56,10 @@ namespace SilentTools
             public static GUIContent lightmapSpecularText = EditorGUIUtility.TrTextContent("Lightmap Specular", "Allows the material to derive specular lighting from the lightmap directionality.");
             public static GUIContent lmSpecMaxSmoothnessText = EditorGUIUtility.TrTextContent("Specular Smoothness Mod", "Adjusts the maximum smoothness of the material for lightmap specular to avoid artifacts from imprecise directionality.");
 
+            public static GUIContent normalMapShadowsText = EditorGUIUtility.TrTextContent("Normal Map Shadows", "Additional shadows produced by marching along the material's normal map.");
+            public static GUIContent normalMapShadowsScaleText = EditorGUIUtility.TrTextContent("Height Scale", "Controls the length of normal map shadows.");
+            public static GUIContent normalMapShadowsHardnessText = EditorGUIUtility.TrTextContent("Hardness", "Controls the hardness of normal map shadows, which are dithered to avoid jagged artifacts.");
+
             public static string primaryMapsText = "Main Maps";
             public static string secondaryMapsText = "Secondary Maps";
             public static string forwardText = "Forward Rendering Options";
@@ -96,6 +100,9 @@ namespace SilentTools
         MaterialProperty exposureOcclusion = null;
         MaterialProperty lightmapSpecular = null;
         MaterialProperty lmSpecMaxSmoothness = null;
+        MaterialProperty normalMapShadows = null;
+        MaterialProperty normalMapShadowsScale = null;
+        MaterialProperty normalMapShadowsHardness = null;
 
         MaterialEditor m_MaterialEditor;
         WorkflowMode m_WorkflowMode = WorkflowMode.Specular;
@@ -146,6 +153,10 @@ namespace SilentTools
             exposureOcclusion = FindProperty("_ExposureOcclusion", props, false);
             lightmapSpecular = FindProperty("_LightmapSpecular", props, false);
             lmSpecMaxSmoothness = FindProperty("_LightmapSpecularMaxSmoothness", props, false);
+
+            normalMapShadows = FindProperty("_NormalMapShadows", props, false);
+            normalMapShadowsScale = FindProperty("_BumpShadowHeightScale", props, false);
+            normalMapShadowsHardness = FindProperty("_BumpShadowHardness", props, false);
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
@@ -216,7 +227,15 @@ namespace SilentTools
                 if (lightmapSpecular != null)
                     m_MaterialEditor.ShaderProperty(lightmapSpecular, Styles.lightmapSpecularText);
                 if (lmSpecMaxSmoothness != null)
-                    m_MaterialEditor.ShaderProperty(lmSpecMaxSmoothness, Styles.lmSpecMaxSmoothnessText);
+                    m_MaterialEditor.ShaderProperty(lmSpecMaxSmoothness, Styles.lmSpecMaxSmoothnessText, 2);
+
+
+                if (normalMapShadows != null)
+                    m_MaterialEditor.ShaderProperty(normalMapShadows, Styles.normalMapShadowsText);
+                if (normalMapShadowsScale != null)
+                    m_MaterialEditor.ShaderProperty(normalMapShadowsScale, Styles.normalMapShadowsScaleText, 2);
+                if (normalMapShadowsHardness != null)
+                    m_MaterialEditor.ShaderProperty(normalMapShadowsHardness, Styles.normalMapShadowsHardnessText, 2);
 
                 EditorGUILayout.Space();
 
@@ -488,6 +507,7 @@ namespace SilentTools
             // New properties
 
             SetKeyword(material, "_LIGHTMAPSPECULAR", material.GetFloat("_LightmapSpecular") == 1? true : false);
+            SetKeyword(material, "_NORMALMAP_SHADOW", material.GetFloat("_NormalMapShadows") == 1? true : false);
         }
 
         static void MaterialChanged(Material material, WorkflowMode workflowMode, bool overrideRenderQueue)

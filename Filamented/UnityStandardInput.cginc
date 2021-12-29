@@ -65,6 +65,9 @@ sampler2D   _EmissionMap;
 half       _ExposureOcclusion;
 half       _LightmapSpecularMaxSmoothness;
 
+half       _BumpShadowHeightScale;
+half       _BumpShadowHardness;
+
 //-------------------------------------------------------------------------------------
 // Input functions
 
@@ -324,8 +327,8 @@ float3 SampleNormalMap (NormalMapShadowsParam nmsParam, float2 offset) {
 
 float NormalTangentShadow(float4 texcoords, half3 lightDirTS, float noise)
 {
-    float _HeightScale = 0.2;
-    float _ShadowHardness = 50.0;
+    float _HeightScale = _BumpShadowHeightScale;
+    float _ShadowHardness = _BumpShadowHardness;
     NormalMapShadowsParam nms = InitNormalMapShadowsParam(texcoords);
     nms.uv = texcoords;
     return NormalMapShadows (lightDirTS, nms, noise, _HeightScale, _ShadowHardness);

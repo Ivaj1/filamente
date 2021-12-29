@@ -44,6 +44,10 @@ Shader "Silent/Filamented"
         [Toggle(_LIGHTMAPSPECULAR)]_LightmapSpecular("Lightmap Specular", Range(0, 1)) = 1
         _LightmapSpecularMaxSmoothness("Lightmap Specular Max Smoothness", Range(0, 1)) = 1
 
+        [Toggle(_NORMALMAP_SHADOW)]_NormalMapShadows("Normal Map Shadows", Range(0, 1)) = 0
+        _BumpShadowHeightScale("Height Scale", Range(0, 1)) = 0.2
+        _BumpShadowHardness("Shadow Hardness", Range(0, 100)) = 50
+
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
 
         [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
@@ -94,6 +98,7 @@ Shader "Silent/Filamented"
             #pragma shader_feature_local _PARALLAXMAP
             
             #pragma shader_feature_local _LIGHTMAPSPECULAR
+            #pragma shader_feature_local _NORMALMAP_SHADOW
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
@@ -131,6 +136,8 @@ Shader "Silent/Filamented"
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local _DETAIL_MULX2
             #pragma shader_feature_local _PARALLAXMAP
+
+            #pragma shader_feature_local _NORMALMAP_SHADOW
 
             #pragma multi_compile_fwdadd_fullshadows
             #pragma multi_compile_fog

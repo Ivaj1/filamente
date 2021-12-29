@@ -52,13 +52,16 @@
 
 #if _NORMALMAP
 #define MATERIAL_HAS_NORMAL
-//#define NORMALMAP_SHADOW
 #endif
 
 //#define MATERIAL_HAS_AMBIENT_OCCLUSION 
 
 #if defined(_LIGHTMAPSPECULAR)
 #define LIGHTMAP_SPECULAR
+#endif
+
+#if defined(_NORMALMAP_SHADOW) && defined(MATERIAL_HAS_NORMAL)
+#define NORMALMAP_SHADOW
 #endif
 
 #if defined(USE_DFG_LUT)
