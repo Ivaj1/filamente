@@ -93,6 +93,7 @@ Shader "Silent/Filamented (Roughness setup)"
             #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
             #pragma shader_feature_local _PARALLAXMAP
 
+            #pragma shader_feature_local _LIGHTMAPSPECULAR
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
