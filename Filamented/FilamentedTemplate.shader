@@ -53,6 +53,9 @@ Shader "Silent/Filamented Template"
 
     	// MATERIAL_HAS_CLEAR_COAT 
     	// If this is set, the material will support clear coat.
+
+        // HAS_ATTRIBUTE_COLOR
+        // If this is not defined, vertex colour will not be available
     ENDCG
 
     CGINCLUDE
