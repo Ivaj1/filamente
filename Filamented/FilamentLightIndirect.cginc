@@ -636,8 +636,11 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 
     #if defined(LIGHTMAP_SPECULAR)
     PixelParams pixelForBakedSpecular = pixel;
-    pixelForBakedSpecular.roughness = lerp(1, pixelForBakedSpecular.roughness, 
-        getLightmapSpecularMaxSmoothness());
+
+    // remap roughness to clamp at max roughness without a hard clamp
+    pixelForBakedSpecular.roughness = remap_almostIdentity(pixelForBakedSpecular.roughness,
+        1-getLightmapSpecularMaxSmoothness(), 1-getLightmapSpecularMaxSmoothness()+MIN_ROUGHNESS);
+    
     if (derivedLight.NoL >= 0.0) color += surfaceShading(shading, pixelForBakedSpecular, derivedLight, 
         computeMicroShadowing(derivedLight.NoL, material.ambientOcclusion * 0.8 + 0.3));
     #endif

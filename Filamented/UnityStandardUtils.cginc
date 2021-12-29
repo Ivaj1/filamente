@@ -354,6 +354,15 @@ float noiseR2(float2 pixel) {
 #define SAMPLE_TEXTURE2D(textureName, samplerName, coord2) textureName.Sample(samplerName, coord2)
 #endif
 
+float remap_almostIdentity( float x, float m, float n )
+{
+    if( x>m ) return x;
+    const float a = 2.0*n - m;
+    const float b = 2.0*m - 3.0*n;
+    const float t = x/m;
+    return (a*t + b)*t*t + n;
+}
+
 //-------------------------------------------------------------------------------------
 
 #endif // UNITY_STANDARD_UTILS_INCLUDED
