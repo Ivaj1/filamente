@@ -68,6 +68,13 @@
 uniform sampler2D _DFG;
 #endif
 
+#if defined(_BAKERY_RNM) || defined(_BAKERY_SH)
+#define USING_BAKERY
+UNITY_DECLARE_TEX2D_HALF(_RNM0);
+UNITY_DECLARE_TEX2D_HALF(_RNM1);
+UNITY_DECLARE_TEX2D_HALF(_RNM2);
+#endif
+
 // Define Specular cubemap constants
 #ifndef UNITY_SPECCUBE_LOD_EXPONENT
 #define UNITY_SPECCUBE_LOD_EXPONENT (1.5)

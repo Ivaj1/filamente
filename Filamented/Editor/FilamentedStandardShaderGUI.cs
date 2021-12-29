@@ -60,6 +60,9 @@ namespace SilentTools
             public static GUIContent normalMapShadowsScaleText = EditorGUIUtility.TrTextContent("Height Scale", "Controls the length of normal map shadows.");
             public static GUIContent normalMapShadowsHardnessText = EditorGUIUtility.TrTextContent("Hardness", "Controls the hardness of normal map shadows, which are dithered to avoid jagged artifacts.");
 
+            public static GUIContent bakeryModeText = EditorGUIUtility.TrTextContent("Bakery Mode", "Sets the material to use one of Bakery's directionality map modes.");
+            public static GUIContent bakeryRNMText = EditorGUIUtility.TrTextContent("Bakery Lightmap", "This texture is applied either by the Bakery runtime script or an external script according to the mesh renderer and can not be modified.");
+
             public static string primaryMapsText = "Main Maps";
             public static string secondaryMapsText = "Secondary Maps";
             public static string forwardText = "Forward Rendering Options";
@@ -103,6 +106,11 @@ namespace SilentTools
         MaterialProperty normalMapShadows = null;
         MaterialProperty normalMapShadowsScale = null;
         MaterialProperty normalMapShadowsHardness = null;
+
+        MaterialProperty bakeryMode = null;
+        MaterialProperty bakeryRNM0 = null;
+        MaterialProperty bakeryRNM1 = null;
+        MaterialProperty bakeryRNM2 = null;
 
         MaterialEditor m_MaterialEditor;
         WorkflowMode m_WorkflowMode = WorkflowMode.Specular;
@@ -157,6 +165,11 @@ namespace SilentTools
             normalMapShadows = FindProperty("_NormalMapShadows", props, false);
             normalMapShadowsScale = FindProperty("_BumpShadowHeightScale", props, false);
             normalMapShadowsHardness = FindProperty("_BumpShadowHardness", props, false);
+
+            bakeryMode = FindProperty("_Bakery", props, false);
+            bakeryRNM0 = FindProperty("_RNM0", props, false);
+            bakeryRNM1 = FindProperty("_RNM1", props, false);
+            bakeryRNM2 = FindProperty("_RNM2", props, false);
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
@@ -236,6 +249,23 @@ namespace SilentTools
                     m_MaterialEditor.ShaderProperty(normalMapShadowsScale, Styles.normalMapShadowsScaleText, 2);
                 if (normalMapShadowsHardness != null)
                     m_MaterialEditor.ShaderProperty(normalMapShadowsHardness, Styles.normalMapShadowsHardnessText, 2);
+
+#if BAKERY_INCLUDED
+                EditorGUILayout.Space();
+                if (bakeryMode != null)
+                    m_MaterialEditor.ShaderProperty(bakeryMode, Styles.bakeryModeText);
+                if ((BlendMode)material.GetFloat("_Bakery") != 0)
+                {
+                    EditorGUI.BeginDisabledGroup(true);
+
+                    EditorGUI.indentLevel += 2;
+                    m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM0);
+                    m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM1);
+                    m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM2);
+                    EditorGUI.indentLevel -= 2;
+                    EditorGUI.EndDisabledGroup();
+                }
+#endif
 
                 EditorGUILayout.Space();
 

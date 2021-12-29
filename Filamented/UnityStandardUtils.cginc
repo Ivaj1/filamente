@@ -347,6 +347,8 @@ float noiseR2(float2 pixel) {
 // Uh... Unity?
 #define LambertTerm(x,y) dot(x,y)
 
+//-------------------------------------------------------------------------------------
+
 // We need to create these functions so we can sample the lightmap textures without complaints. 
 #ifndef TEXTURE2D_ARGS
 #define TEXTURE2D_ARGS(textureName, samplerName) Texture2D textureName, SamplerState samplerName

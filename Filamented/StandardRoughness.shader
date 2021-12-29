@@ -47,6 +47,11 @@ Shader "Silent/Filamented (Roughness setup)"
         _BumpShadowHeightScale("Height Scale", Range(0, 1)) = 0.2
         _BumpShadowHardness("Shadow Hardness", Range(0, 100)) = 50
 
+        [KeywordEnum(None, SH, RNM)] _Bakery ("Bakery Mode", Int) = 0
+            _RNM0("RNM0", 2D) = "black" {}
+            _RNM1("RNM1", 2D) = "black" {}
+            _RNM2("RNM2", 2D) = "black" {}
+
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
 
         [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
@@ -99,6 +104,7 @@ Shader "Silent/Filamented (Roughness setup)"
 
             #pragma shader_feature_local _LIGHTMAPSPECULAR
             #pragma shader_feature_local _NORMALMAP_SHADOW
+            #pragma shader_feature_local _ _BAKERY_RNM _BAKERY_SH
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
