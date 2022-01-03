@@ -715,7 +715,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     inout float3 color) {
     float ssao = 1.0; // Not implemented
     float lightmapAO = 1.0; // 
-    float3 tangentNormal = 0;
+    float3 tangentNormal = float3(0, 0, 1);
     Light derivedLight = (Light)0;
 
     // Gather Unity GI data
