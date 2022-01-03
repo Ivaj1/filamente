@@ -5,6 +5,17 @@
 
 // Filamented configuration
 
+#define FILAMENT_QUALITY_LOW    0
+#define FILAMENT_QUALITY_NORMAL 1
+#define FILAMENT_QUALITY_HIGH   2
+
+// Sets a different quality level for mobile and other platforms.
+#if !(defined(SHADER_API_MOBILE))
+#define FILAMENT_QUALITY FILAMENT_QUALITY_HIGH
+#else
+#define FILAMENT_QUALITY FILAMENT_QUALITY_LOW
+#endif
+
 // Whether to read the _DFG texture for DFG instead of the approximate one. 
 //#define USE_DFG_LUT
 
