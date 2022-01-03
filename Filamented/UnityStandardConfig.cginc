@@ -22,15 +22,18 @@
 #if (POINT || SPOT)
 #define HAS_DYNAMIC_LIGHTING 
 #endif
-#if _EMISSION
-#define MATERIAL_HAS_EMISSIVE 
-#endif
 #if (SHADOWS_SCREEN || SHADOWS_SHADOWMASK || LIGHTMAP_SHADOW)
 #define HAS_SHADOWING 
 #endif
 
+#if _EMISSION
+#define MATERIAL_HAS_EMISSIVE 
+#endif
 #if defined(MATERIAL_HAS_NORMAL)
 #define _NORMALMAP 1
+#endif
+#if _NORMALMAP
+#define MATERIAL_HAS_NORMAL
 #endif
 
 #if (MATERIAL_NEEDS_TBN)
@@ -50,17 +53,13 @@
 // By default, Standard assumes meshes have normals
 #define HAS_ATTRIBUTE_TANGENTS
 
-#if _NORMALMAP
-#define MATERIAL_HAS_NORMAL
-#endif
-
 //#define MATERIAL_HAS_AMBIENT_OCCLUSION 
 
 #if defined(_LIGHTMAPSPECULAR)
 #define LIGHTMAP_SPECULAR
 #endif
 
-#if defined(_NORMALMAP_SHADOW) && defined(MATERIAL_HAS_NORMAL)
+#if defined(_NORMALMAP_SHADOW) && defined(MATERIAL_HAS_NORMAL) && defined(HAS_SHADOWING)
 #define NORMALMAP_SHADOW
 #endif
 
