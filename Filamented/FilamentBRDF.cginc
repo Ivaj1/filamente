@@ -173,7 +173,7 @@ float3 fresnel(const float3 f0, float LoH) {
 #if FILAMENT_QUALITY == FILAMENT_QUALITY_LOW
     return F_Schlick(f0, LoH); // f90 = 1.0
 #else
-    float f90 = saturateMediump(dot(f0, (50.0 * 0.33)));
+    float f90 = saturate(dot(f0, (50.0 * 0.33)));
     return F_Schlick(f0, f90, LoH);
 #endif
 #endif
@@ -236,7 +236,7 @@ float Fd_Burley(float roughness, float NoV, float NoL, float LoH) {
 
 // Energy conserving wrap diffuse term, does *not* include the divide by pi
 float Fd_Wrap(float NoL, float w) {
-    return saturateMediump((NoL + w) / sq(1.0 + w));
+    return saturate((NoL + w) / sq(1.0 + w));
 }
 
 //------------------------------------------------------------------------------
