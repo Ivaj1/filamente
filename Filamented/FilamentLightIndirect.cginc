@@ -616,7 +616,7 @@ void isEvaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel
 
     PixelParams p;
     p.perceptualRoughness = pixel.clearCoatPerceptualRoughness;
-    p.f0 = float3(0.04.xxx);
+    p.f0 = 0.04;
     p.roughness = perceptualRoughnessToRoughness(p.perceptualRoughness);
 #if defined(MATERIAL_HAS_ANISOTROPY)
     p.anisotropy = 0.0;
@@ -644,7 +644,7 @@ void evaluateClothIndirectDiffuseBRDF(const ShadingParams shading, const PixelPa
 }
 
 void evaluateSheenIBL(const ShadingParams shading, const PixelParams pixel, 
-    float specularAO, inout float3 Fd, inout float3 Fr) {
+    float diffuseAO, inout float3 Fd, inout float3 Fr) {
 #if !defined(SHADING_MODEL_CLOTH) && !defined(SHADING_MODEL_SUBSURFACE)
 #if defined(MATERIAL_HAS_SHEEN_COLOR)
     // Albedo scaling of the base layer before we layer sheen on top
@@ -652,14 +652,17 @@ void evaluateSheenIBL(const ShadingParams shading, const PixelParams pixel,
     Fr *= pixel.sheenScaling;
 
     float3 reflectance = pixel.sheenDFG * pixel.sheenColor;
+    reflectance *= specularAO(shading_NoV, diffuseAO, pixel.sheenRoughness);
+
     Fr += reflectance * prefilteredRadiance(shading.reflected, pixel.sheenPerceptualRoughness);
 #endif
 #endif
 }
 
 void evaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel, 
-    float specularAO, inout float3 Fd, inout float3 Fr) {
+    float diffuseAO, inout float3 Fd, inout float3 Fr) {
 #if IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
+    float specularAO = specularAO(shading_NoV, diffuseAO, pixel.clearCoatRoughness);
     isEvaluateClearCoatIBL(pixel, specularAO, Fd, Fr);
     return;
 #endif
@@ -678,6 +681,9 @@ void evaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel,
     float attenuation = 1.0 - Fc;
     Fd *= attenuation;
     Fr *= attenuation;
+
+    // TODO: Should we apply specularAO to the attenuation as well?
+    float specularAO = specularAO(clearCoatNoV, diffuseAO, pixel.clearCoatRoughness);
     Fr += prefilteredRadiance(clearCoatR, pixel.clearCoatPerceptualRoughness) * (specularAO * Fc);
 #endif
 }
@@ -755,18 +761,18 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 
     float3 Fd = pixel.diffuseColor * diffuseIrradiance * (1.0 - E) * diffuseBRDF;
 
-    // sheen layer
-    evaluateSheenIBL(shading, pixel, specularAO, Fd, Fr);
-
-    // clear coat layer
-    evaluateClearCoatIBL(shading, pixel, specularAO, Fd, Fr);
-
     // subsurface layer
     evaluateSubsurfaceIBL(shading, pixel, diffuseIrradiance, Fd, Fr);
 
-    // extra ambient occlusion term
+    // extra ambient occlusion term for the base and subsurface layers
     multiBounceAO(diffuseAO, pixel.diffuseColor, Fd);
     multiBounceSpecularAO(specularAO, pixel.f0, Fr);
+
+    // sheen layer
+    evaluateSheenIBL(shading, pixel, diffuseAO, Fd, Fr);
+
+    // clear coat layer
+    evaluateClearCoatIBL(shading, pixel, diffuseAO, Fd, Fr);
     
     // Note: iblLuminance is already premultiplied by the exposure
     combineDiffuseAndSpecular(pixel, shading.normal, E, Fd, Fr, color);
