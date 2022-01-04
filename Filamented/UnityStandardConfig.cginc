@@ -16,14 +16,20 @@
 #define FILAMENT_QUALITY FILAMENT_QUALITY_LOW
 #endif
 
-// Whether to read the _DFG texture for DFG instead of the approximate one. 
-//#define USE_DFG_LUT
-
 #define SPECULAR_AMBIENT_OCCLUSION SPECULAR_AO_SIMPLE
 #define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
+
 #define GEOMETRIC_SPECULAR_AA
 #define _specularAntiAliasingVariance 0.15
 #define _specularAntiAliasingThreshold 0.25
+
+// Whether to read the _DFG texture for DFG instead of the approximate one. 
+// The shader must have a _DFG texture property, so don't enable this here.
+// For example, you can use this ShaderLab semantic to specify a DFG texture.
+// [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
+// Then, set the default texture on the .shader in Unity
+// and it will propagate to all materials.
+// #define USE_DFG_LUT
 
 // Filament cross-compatibility defines
 
@@ -75,7 +81,7 @@
 #endif
 
 #if defined(USE_DFG_LUT)
-uniform sampler2D _DFG;
+UNITY_DECLARE_TEX2D_FLOAT(_DFG);
 #endif
 
 #if defined(_BAKERY_RNM) || defined(_BAKERY_SH)

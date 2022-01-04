@@ -67,6 +67,8 @@ Shader "Silent/Filamented (Specular setup)"
         #define SHADING_MODEL_SPECULAR_GLOSSINESS
         // OcclusionMap is always defined
         #define MATERIAL_HAS_AMBIENT_OCCLUSION 
+        // _DFG is present
+        #define USE_DFG_LUT
     ENDCG
 
     SubShader

@@ -24,6 +24,8 @@ Shader "Silent/Filamented Template"
         _EmissionColor("Emission Color", Color) = (1,1,1,1)
         [Space]
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
+
+        [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
     }
 
     CGINCLUDE
@@ -55,7 +57,11 @@ Shader "Silent/Filamented Template"
     	// If this is set, the material will support clear coat.
 
         // HAS_ATTRIBUTE_COLOR
-        // If this is not defined, vertex colour will not be available
+        // If this is not defined, vertex colour will not be available.
+
+        #define USE_DFG_LUT
+        // Whether to use the lookup texture for specular reflection calculation.
+        // Requires a shader property _DFG to be present and filled.
     ENDCG
 
     CGINCLUDE

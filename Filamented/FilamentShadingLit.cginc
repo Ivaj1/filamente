@@ -240,12 +240,10 @@ void getEnergyCompensationPixelParams(const ShadingParams shading, inout PixelPa
 #if !defined(SHADING_MODEL_CLOTH)
     // Energy compensation for multiple scattering in a microfacet model
     // See "Multiple-Scattering Microfacet BSDFs with the Smith Model"
-    pixel.energyCompensation = 1.0 + pixel.f0 * (1.0 / pixel.dfg.y - 1.0);
+    pixel.energyCompensation = 1.0 + pixel.f0 * (1.0 / pixel.dfg.yyy - 1.0);
 #else
     pixel.energyCompensation = (1.0);
 #endif
-    // Disabled until DFG is implemented properly
-    pixel.energyCompensation = (1.0);
 
 #if !defined(SHADING_MODEL_CLOTH)
 #if defined(MATERIAL_HAS_SHEEN_COLOR)

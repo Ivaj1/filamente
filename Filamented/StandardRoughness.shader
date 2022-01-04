@@ -67,6 +67,8 @@ Shader "Silent/Filamented (Roughness setup)"
         #define SHADING_MODEL_METALLIC_ROUGHNESS
         // OcclusionMap is always defined
         #define MATERIAL_HAS_AMBIENT_OCCLUSION 
+        // _DFG is present
+        #define USE_DFG_LUT
     ENDCG
 
     SubShader
