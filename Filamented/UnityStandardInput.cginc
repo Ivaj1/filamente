@@ -68,6 +68,11 @@ half       _LightmapSpecularMaxSmoothness;
 half       _BumpShadowHeightScale;
 half       _BumpShadowHardness;
 
+#if !defined(USE_GEOMETRIC_SPECULAR_AA_DEFAULT)
+half       _specularAntiAliasingVariance;
+half       _specularAntiAliasingThreshold;
+#endif
+
 //-------------------------------------------------------------------------------------
 // Input functions
 

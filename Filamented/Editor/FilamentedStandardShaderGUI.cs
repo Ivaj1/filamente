@@ -52,6 +52,12 @@ namespace SilentTools
             public static GUIContent detailNormalMapText = EditorGUIUtility.TrTextContent("Normal Map", "Normal Map");
             public static GUIContent cullModeText = EditorGUIUtility.TrTextContent("Cull Mode", "Which face of the polygon should be culled from rendering");
 
+            public static GUIContent filamentedOptionsLabel = EditorGUIUtility.TrTextContent("Filamented Options", "Settings which control functionality specific to Filamented.");
+            public static GUIContent specularAALabel = EditorGUIUtility.TrTextContent("Specular Anti-Aliasing", "Reduces specular aliasing and preserves the shape of specular highlights as an object moves away from the camera.");
+            public static GUIContent specularAAVarianceText = EditorGUIUtility.TrTextContent("Variance", "Sets the screen space variance of the filter kernel used when applying specular anti-aliasing. Higher values will increase the effect of the filter but may increase roughness in unwanted areas.");
+            public static GUIContent specularAAThresholdText = EditorGUIUtility.TrTextContent("Threshold", "Sets the clamping threshold used to suppress estimation errors when applying specular anti-aliasing. When set to 0, specular anti-aliasing is disabled.");
+
+            public static GUIContent lightmapOptionsLabel = EditorGUIUtility.TrTextContent("Lightmap Options", "Settings which only affect the object when it is affected by baked GI lightmapping.");
             public static GUIContent exposureOcclusionText = EditorGUIUtility.TrTextContent("Exposure Occlusion", "Controls occlusion of specular lighting by the lightmap");
             public static GUIContent lightmapSpecularText = EditorGUIUtility.TrTextContent("Lightmap Specular", "Allows the material to derive specular lighting from the lightmap directionality.");
             public static GUIContent lmSpecMaxSmoothnessText = EditorGUIUtility.TrTextContent("Specular Smoothness Mod", "Adjusts the maximum smoothness of the material for lightmap specular to avoid artifacts from imprecise directionality.");
@@ -100,6 +106,8 @@ namespace SilentTools
         MaterialProperty detailNormalMap = null;
         MaterialProperty uvSetSecondary = null;
         MaterialProperty cullMode = null;
+        MaterialProperty specularAAVariance = null;
+        MaterialProperty specularAAThreshold = null;
         MaterialProperty exposureOcclusion = null;
         MaterialProperty lightmapSpecular = null;
         MaterialProperty lmSpecMaxSmoothness = null;
@@ -157,6 +165,9 @@ namespace SilentTools
             detailNormalMap = FindProperty("_DetailNormalMap", props);
             uvSetSecondary = FindProperty("_UVSec", props);
             cullMode = FindProperty("_CullMode", props);
+
+            specularAAVariance = FindProperty("_specularAntiAliasingVariance", props, false);
+            specularAAThreshold = FindProperty("_specularAntiAliasingThreshold", props, false);
 
             exposureOcclusion = FindProperty("_ExposureOcclusion", props, false);
             lightmapSpecular = FindProperty("_LightmapSpecular", props, false);
@@ -225,23 +236,19 @@ namespace SilentTools
                 m_MaterialEditor.TextureScaleOffsetProperty(detailAlbedoMap);
                 m_MaterialEditor.ShaderProperty(uvSetSecondary, Styles.uvSetLabel.text);
 
-                // Third properties
-                GUILayout.Label(Styles.forwardText, EditorStyles.boldLabel);
-                if (highlights != null)
-                    m_MaterialEditor.ShaderProperty(highlights, Styles.highlightsText);
-                if (reflections != null)
-                    m_MaterialEditor.ShaderProperty(reflections, Styles.reflectionsText);
-
                 EditorGUILayout.Space();
 
-                // Added properties
-                if (exposureOcclusion != null)
-                    m_MaterialEditor.ShaderProperty(exposureOcclusion, Styles.exposureOcclusionText);
-                if (lightmapSpecular != null)
-                    m_MaterialEditor.ShaderProperty(lightmapSpecular, Styles.lightmapSpecularText);
-                if (lmSpecMaxSmoothness != null)
-                    m_MaterialEditor.ShaderProperty(lmSpecMaxSmoothness, Styles.lmSpecMaxSmoothnessText, 2);
+                // Third properties
+                GUILayout.Label(Styles.filamentedOptionsLabel, EditorStyles.boldLabel);
 
+                // Added properties
+                GUILayout.Label(Styles.specularAALabel, EditorStyles.label);
+                if (specularAAVariance != null)
+                    m_MaterialEditor.ShaderProperty(specularAAVariance, Styles.specularAAVarianceText, 2);
+                if (specularAAThreshold != null)
+                    m_MaterialEditor.ShaderProperty(specularAAThreshold, Styles.specularAAThresholdText, 2);
+
+                EditorGUILayout.Space();
 
                 if (normalMapShadows != null)
                     m_MaterialEditor.ShaderProperty(normalMapShadows, Styles.normalMapShadowsText);
@@ -250,8 +257,10 @@ namespace SilentTools
                 if (normalMapShadowsHardness != null)
                     m_MaterialEditor.ShaderProperty(normalMapShadowsHardness, Styles.normalMapShadowsHardnessText, 2);
 
-#if BAKERY_INCLUDED
                 EditorGUILayout.Space();
+
+                GUILayout.Label(Styles.lightmapOptionsLabel, EditorStyles.boldLabel);
+#if BAKERY_INCLUDED
                 if (bakeryMode != null)
                     m_MaterialEditor.ShaderProperty(bakeryMode, Styles.bakeryModeText);
                 if ((BlendMode)material.GetFloat("_Bakery") != 0)
@@ -266,6 +275,20 @@ namespace SilentTools
                     EditorGUI.EndDisabledGroup();
                 }
 #endif
+                if (lightmapSpecular != null)
+                    m_MaterialEditor.ShaderProperty(lightmapSpecular, Styles.lightmapSpecularText);
+                if (lmSpecMaxSmoothness != null)
+                    m_MaterialEditor.ShaderProperty(lmSpecMaxSmoothness, Styles.lmSpecMaxSmoothnessText, 2);
+                if (exposureOcclusion != null)
+                    m_MaterialEditor.ShaderProperty(exposureOcclusion, Styles.exposureOcclusionText);
+
+                EditorGUILayout.Space();
+                
+                GUILayout.Label(Styles.forwardText, EditorStyles.boldLabel);
+                if (highlights != null)
+                    m_MaterialEditor.ShaderProperty(highlights, Styles.highlightsText);
+                if (reflections != null)
+                    m_MaterialEditor.ShaderProperty(reflections, Styles.reflectionsText);
 
                 EditorGUILayout.Space();
 

@@ -47,6 +47,9 @@ Shader "Silent/Filamented"
         [Toggle(_NORMALMAP_SHADOW)]_NormalMapShadows("Normal Map Shadows", Range(0, 1)) = 0
         _BumpShadowHeightScale("Height Scale", Range(0, 1)) = 0.2
         _BumpShadowHardness("Shadow Hardness", Range(0, 100)) = 50
+ 
+        _specularAntiAliasingVariance("Specular AA Variance",  Range(0, 1)) = 0.15
+        _specularAntiAliasingThreshold("Specular AA Threshold", Range(0, 1)) = 0.25
 
         [KeywordEnum(None, SH, RNM)] _Bakery ("Bakery Mode", Int) = 0
             _RNM0("RNM0", 2D) = "black" {}
@@ -67,6 +70,8 @@ Shader "Silent/Filamented"
     CGINCLUDE
         // OcclusionMap is always defined
         #define MATERIAL_HAS_AMBIENT_OCCLUSION 
+        // Use specular AA controls
+        #define USE_GEOMETRIC_SPECULAR_AA
         // _DFG is present
         #define USE_DFG_LUT
     ENDCG

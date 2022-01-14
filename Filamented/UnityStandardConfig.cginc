@@ -19,9 +19,12 @@
 #define SPECULAR_AMBIENT_OCCLUSION SPECULAR_AO_SIMPLE
 #define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
 
-#define GEOMETRIC_SPECULAR_AA
-#define _specularAntiAliasingVariance 0.15
-#define _specularAntiAliasingThreshold 0.25
+// Whether to use specular AA by default 
+// in shaders that don't specify USE_GEOMETRIC_SPECULAR_AA.
+#if !defined(USE_GEOMETRIC_SPECULAR_AA)
+#define USE_GEOMETRIC_SPECULAR_AA_DEFAULT
+#endif
+
 
 // Whether to read the _DFG texture for DFG instead of the approximate one. 
 // The shader must have a _DFG texture property, so don't enable this here.
@@ -71,6 +74,17 @@
 #define HAS_ATTRIBUTE_TANGENTS
 
 //#define MATERIAL_HAS_AMBIENT_OCCLUSION 
+
+// If USE_GEOMETRIC_SPECULAR_AA is set, don't use the default values
+#if defined(USE_GEOMETRIC_SPECULAR_AA)
+#define GEOMETRIC_SPECULAR_AA
+#else
+#if defined(USE_GEOMETRIC_SPECULAR_AA_DEFAULT)
+#define GEOMETRIC_SPECULAR_AA
+#define _specularAntiAliasingVariance 0.15
+#define _specularAntiAliasingThreshold 0.25
+#endif
+#endif
 
 #if defined(_LIGHTMAPSPECULAR)
 #define LIGHTMAP_SPECULAR
