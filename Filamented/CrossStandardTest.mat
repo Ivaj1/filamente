@@ -97,8 +97,8 @@ Material:
     - _SrcBlend: 1
     - _UVSec: 0
     - _ZWrite: 1
-    - _specularAntiAliasingThreshold: 0
-    - _specularAntiAliasingVariance: 0
+    - _specularAntiAliasingThreshold: 0.25
+    - _specularAntiAliasingVariance: 0.15
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 2.7921572, g: 2.729412, b: 2.227451, a: 1}

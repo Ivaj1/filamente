@@ -29,6 +29,12 @@ namespace SilentTools
             AlbedoAlpha,
         }
 
+        private enum SettingsMode
+        {
+            Basic,
+            Full,
+        }
+
         private static class Styles
         {
             public static GUIContent uvSetLabel = EditorGUIUtility.TrTextContent("UV Set");
@@ -73,8 +79,10 @@ namespace SilentTools
             public static string secondaryMapsText = "Secondary Maps";
             public static string forwardText = "Forward Rendering Options";
             public static string renderingMode = "Rendering Mode";
+            public static string settingsMode = "Settings Mode";
             public static string advancedText = "Advanced Options";
             public static readonly string[] blendNames = Enum.GetNames(typeof(BlendMode));
+            public static readonly string[] settingNames = Enum.GetNames(typeof(SettingsMode));
         }
 
         MaterialProperty blendMode = null;
@@ -124,6 +132,8 @@ namespace SilentTools
         WorkflowMode m_WorkflowMode = WorkflowMode.Specular;
 
         bool m_FirstTimeApply = true;
+
+        int m_SettingsMode = (int)SettingsMode.Basic;
 
         public void FindProperties(MaterialProperty[] props)
         {
@@ -194,6 +204,12 @@ namespace SilentTools
             // Do this before any GUI code has been issued to prevent layout issues in subsequent GUILayout statements (case 780071)
             if (m_FirstTimeApply)
             {
+                if (!Int32.TryParse(EditorUserSettings.GetConfigValue("filamented_settings_mode"), out m_SettingsMode))
+                {
+                    Debug.Log(m_SettingsMode);
+                    Debug.Log(EditorUserSettings.GetConfigValue("filamented_settings_mode"));
+                    m_SettingsMode = (int)SettingsMode.Basic;
+                }
                 MaterialChanged(material, m_WorkflowMode, false);
                 m_FirstTimeApply = false;
             }
@@ -238,52 +254,57 @@ namespace SilentTools
 
                 EditorGUILayout.Space();
 
-                // Third properties
-                GUILayout.Label(Styles.filamentedOptionsLabel, EditorStyles.boldLabel);
+                SettingsModePopup();
 
-                // Added properties
-                GUILayout.Label(Styles.specularAALabel, EditorStyles.label);
-                if (specularAAVariance != null)
-                    m_MaterialEditor.ShaderProperty(specularAAVariance, Styles.specularAAVarianceText, 2);
-                if (specularAAThreshold != null)
-                    m_MaterialEditor.ShaderProperty(specularAAThreshold, Styles.specularAAThresholdText, 2);
-
-                EditorGUILayout.Space();
-
-                if (normalMapShadows != null)
-                    m_MaterialEditor.ShaderProperty(normalMapShadows, Styles.normalMapShadowsText);
-                if (normalMapShadowsScale != null)
-                    m_MaterialEditor.ShaderProperty(normalMapShadowsScale, Styles.normalMapShadowsScaleText, 2);
-                if (normalMapShadowsHardness != null)
-                    m_MaterialEditor.ShaderProperty(normalMapShadowsHardness, Styles.normalMapShadowsHardnessText, 2);
-
-                EditorGUILayout.Space();
-
-                GUILayout.Label(Styles.lightmapOptionsLabel, EditorStyles.boldLabel);
-#if BAKERY_INCLUDED
-                if (bakeryMode != null)
-                    m_MaterialEditor.ShaderProperty(bakeryMode, Styles.bakeryModeText);
-                if ((BlendMode)material.GetFloat("_Bakery") != 0)
+                if(m_SettingsMode > (int)SettingsMode.Basic)
                 {
-                    EditorGUI.BeginDisabledGroup(true);
+                    // Third properties
+                    GUILayout.Label(Styles.filamentedOptionsLabel, EditorStyles.boldLabel);
 
-                    EditorGUI.indentLevel += 2;
-                    m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM0);
-                    m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM1);
-                    m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM2);
-                    EditorGUI.indentLevel -= 2;
-                    EditorGUI.EndDisabledGroup();
+                    // Added properties
+                    GUILayout.Label(Styles.specularAALabel, EditorStyles.label);
+                    if (specularAAVariance != null)
+                        m_MaterialEditor.ShaderProperty(specularAAVariance, Styles.specularAAVarianceText, 2);
+                    if (specularAAThreshold != null)
+                        m_MaterialEditor.ShaderProperty(specularAAThreshold, Styles.specularAAThresholdText, 2);
+
+                    EditorGUILayout.Space();
+
+                    if (normalMapShadows != null)
+                        m_MaterialEditor.ShaderProperty(normalMapShadows, Styles.normalMapShadowsText);
+                    if (normalMapShadowsScale != null)
+                        m_MaterialEditor.ShaderProperty(normalMapShadowsScale, Styles.normalMapShadowsScaleText, 2);
+                    if (normalMapShadowsHardness != null)
+                        m_MaterialEditor.ShaderProperty(normalMapShadowsHardness, Styles.normalMapShadowsHardnessText, 2);
+
+                    EditorGUILayout.Space();
+
+                    GUILayout.Label(Styles.lightmapOptionsLabel, EditorStyles.boldLabel);
+    #if BAKERY_INCLUDED
+                    if (bakeryMode != null)
+                        m_MaterialEditor.ShaderProperty(bakeryMode, Styles.bakeryModeText);
+                    if ((BlendMode)material.GetFloat("_Bakery") != 0)
+                    {
+                        EditorGUI.BeginDisabledGroup(true);
+
+                        EditorGUI.indentLevel += 2;
+                        m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM0);
+                        m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM1);
+                        m_MaterialEditor.TexturePropertySingleLine(Styles.bakeryRNMText, bakeryRNM2);
+                        EditorGUI.indentLevel -= 2;
+                        EditorGUI.EndDisabledGroup();
+                    }
+    #endif
+                    if (lightmapSpecular != null)
+                        m_MaterialEditor.ShaderProperty(lightmapSpecular, Styles.lightmapSpecularText);
+                    if (lmSpecMaxSmoothness != null)
+                        m_MaterialEditor.ShaderProperty(lmSpecMaxSmoothness, Styles.lmSpecMaxSmoothnessText, 2);
+                    if (exposureOcclusion != null)
+                        m_MaterialEditor.ShaderProperty(exposureOcclusion, Styles.exposureOcclusionText);
+
+                    EditorGUILayout.Space();
                 }
-#endif
-                if (lightmapSpecular != null)
-                    m_MaterialEditor.ShaderProperty(lightmapSpecular, Styles.lightmapSpecularText);
-                if (lmSpecMaxSmoothness != null)
-                    m_MaterialEditor.ShaderProperty(lmSpecMaxSmoothness, Styles.lmSpecMaxSmoothnessText, 2);
-                if (exposureOcclusion != null)
-                    m_MaterialEditor.ShaderProperty(exposureOcclusion, Styles.exposureOcclusionText);
 
-                EditorGUILayout.Space();
-                
                 GUILayout.Label(Styles.forwardText, EditorStyles.boldLabel);
                 if (highlights != null)
                     m_MaterialEditor.ShaderProperty(highlights, Styles.highlightsText);
@@ -366,6 +387,25 @@ namespace SilentTools
             {
                 m_MaterialEditor.RegisterPropertyChangeUndo("Rendering Mode");
                 blendMode.floatValue = (float)mode;
+            }
+
+            EditorGUI.showMixedValue = false;
+
+            return result;
+        }
+
+        bool SettingsModePopup()
+        {
+            EditorGUI.showMixedValue = blendMode.hasMixedValue;
+            var mode = (int)m_SettingsMode;
+
+            EditorGUI.BeginChangeCheck();
+            mode = EditorGUILayout.Popup(Styles.settingsMode, mode, Styles.settingNames);
+            bool result = EditorGUI.EndChangeCheck();
+            if (result)
+            {
+                EditorUserSettings.SetConfigValue("filamented_settings_mode", mode.ToString());
+                m_SettingsMode = mode;
             }
 
             EditorGUI.showMixedValue = false;
