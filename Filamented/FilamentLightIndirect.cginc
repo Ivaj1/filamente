@@ -13,9 +13,6 @@
 // Image based lighting configuration
 //------------------------------------------------------------------------------
 
-// Number of spherical harmonics bands (1, 2 or 3)
-#define SPHERICAL_HARMONICS_BANDS           3
-
 // Whether to use Geometrics' deringing lightprobe sampling.
 #define SPHERICAL_HARMONICS_DEFAULT         0
 #define SPHERICAL_HARMONICS_GEOMETRICS      1
@@ -103,40 +100,124 @@ float shEvaluateDiffuseL1Geomerics_local(float L0, float3 L1, float3 n)
     return R0 * (a + (1.0f - a) * (p + 1.0f) * pow(q, p));
 }
 
-float3 Irradiance_SphericalHarmonics(const float3 n) {
+float3 Irradiance_SphericalHarmonics(const float3 n, const bool useL2) {
     // Uses Unity's functions for reading SH. 
     // However, this function is currently unused. 
     float3 finalSH = float3(0,0,0); 
-    #if UNITY_LIGHT_PROBE_PROXY_VOLUME
-    /*
-        if (unity_ProbeVolumeParams.x == 1.0)
-            finalSH = SHEvalLinearL0L1_SampleProbeVolume(half4(n, 1.0), shading.position);
-        else
+        #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_DEFAULT)
             finalSH = SHEvalLinearL0L1(half4(n, 1.0));
-
-        finalSH += SHEvalLinearL2(half4(n, 1.0));
-    */
-        return max(0, finalSH);
-
-    #else
-        #if defined(SPHERICAL_HARMONICS_DEFAULT)
-            finalSH = SHEvalLinearL0L1(half4(n, 1.0));
-            finalSH += SHEvalLinearL2(half4(n, 1.0));
+            if (useL2) finalSH += SHEvalLinearL2(half4(n, 1.0));
         #endif
 
-        #if defined(SPHERICAL_HARMONICS_GEOMETRICS)
+        #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_GEOMETRICS)
             float3 L0 = float3(unity_SHAr.w, unity_SHAg.w, unity_SHAb.w)
             + float3(unity_SHBr.z, unity_SHBg.z, unity_SHBb.z) / 3.0;
             finalSH.r = shEvaluateDiffuseL1Geomerics_local(L0.r, unity_SHAr.xyz, n);
             finalSH.g = shEvaluateDiffuseL1Geomerics_local(L0.g, unity_SHAg.xyz, n);
             finalSH.b = shEvaluateDiffuseL1Geomerics_local(L0.b, unity_SHAb.xyz, n);
             // Quadratic polynomials
-            finalSH += SHEvalLinearL2 (float4(n, 1));
-            finalSH = max(finalSH, 0);
+            if (useL2) finalSH += SHEvalLinearL2 (float4(n, 1));
+        #endif
+
+    return finalSH;
+}
+
+float3 Irradiance_SphericalHarmonics(const float3 n) {
+    // Assume L2 is wanted
+    return Irradiance_SphericalHarmonics(n, true);
+}
+
+#if UNITY_LIGHT_PROBE_PROXY_VOLUME
+// normal should be normalized, w=1.0
+half3 Irradiance_SampleProbeVolume (half4 normal, float3 worldPos)
+{
+    const float transformToLocal = unity_ProbeVolumeParams.y;
+    const float texelSizeX = unity_ProbeVolumeParams.z;
+
+    //The SH coefficients textures and probe occlusion are packed into 1 atlas.
+    //-------------------------
+    //| ShR | ShG | ShB | Occ |
+    //-------------------------
+
+    float3 position = (transformToLocal == 1.0f) ? mul(unity_ProbeVolumeWorldToObject, float4(worldPos, 1.0)).xyz : worldPos;
+    float3 texCoord = (position - unity_ProbeVolumeMin.xyz) * unity_ProbeVolumeSizeInv.xyz;
+    texCoord.x = texCoord.x * 0.25f;
+
+    // We need to compute proper X coordinate to sample.
+    // Clamp the coordinate otherwize we'll have leaking between RGB coefficients
+    float texCoordX = clamp(texCoord.x, 0.5f * texelSizeX, 0.25f - 0.5f * texelSizeX);
+
+    // sampler state comes from SHr (all SH textures share the same sampler)
+    texCoord.x = texCoordX;
+    half4 SHAr = UNITY_SAMPLE_TEX3D_SAMPLER(unity_ProbeVolumeSH, unity_ProbeVolumeSH, texCoord);
+
+    texCoord.x = texCoordX + 0.25f;
+    half4 SHAg = UNITY_SAMPLE_TEX3D_SAMPLER(unity_ProbeVolumeSH, unity_ProbeVolumeSH, texCoord);
+
+    texCoord.x = texCoordX + 0.5f;
+    half4 SHAb = UNITY_SAMPLE_TEX3D_SAMPLER(unity_ProbeVolumeSH, unity_ProbeVolumeSH, texCoord);
+
+    // Linear + constant polynomial terms
+    half3 x1;
+
+    #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_DEFAULT)
+        x1.r = dot(SHAr, normal);
+        x1.g = dot(SHAg, normal);
+        x1.b = dot(SHAb, normal);
+    #endif
+
+    #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_GEOMETRICS)
+        x1.r = shEvaluateDiffuseL1Geomerics_local(SHAr.w, SHAr.rgb, normal);
+        x1.g = shEvaluateDiffuseL1Geomerics_local(SHAg.w, SHAg.rgb, normal);
+        x1.b = shEvaluateDiffuseL1Geomerics_local(SHAb.w, SHAb.rgb, normal);
+    #endif
+
+    return x1;
+}
+#endif
+
+half3 Irradiance_SphericalHarmonicsUnity (half3 normal, half3 ambient, float3 worldPos)
+{
+    half3 ambient_contrib = 0.0;
+
+    #if UNITY_SAMPLE_FULL_SH_PER_PIXEL
+        // Completely per-pixel
+        #if UNITY_LIGHT_PROBE_PROXY_VOLUME
+            if (unity_ProbeVolumeParams.x == 1.0)
+                ambient_contrib = Irradiance_SampleProbeVolume(half4(normal, 1.0), worldPos);
+            else
+                ambient_contrib = Irradiance_SphericalHarmonics(normal, true);
+        #else
+            ambient_contrib = Irradiance_SphericalHarmonics(normal, true);
+        #endif
+
+            ambient += max(half3(0, 0, 0), ambient_contrib);
+
+        #ifdef UNITY_COLORSPACE_GAMMA
+            ambient = LinearToGammaSpace(ambient);
+        #endif
+    #elif (SHADER_TARGET < 30) || UNITY_STANDARD_SIMPLE
+        // Completely per-vertex
+        // nothing to do here. Gamma conversion on ambient from SH takes place in the vertex shader, see ShadeSHPerVertex.
+    #else
+        // L2 per-vertex, L0..L1 & gamma-correction per-pixel
+        // Ambient in this case is expected to be always Linear, see ShadeSHPerVertex()
+        #if UNITY_LIGHT_PROBE_PROXY_VOLUME
+            if (unity_ProbeVolumeParams.x == 1.0)
+                ambient_contrib = Irradiance_SampleProbeVolume (half4(normal, 1.0), worldPos);
+            else
+                ambient_contrib = Irradiance_SphericalHarmonics(normal, false);
+        #else
+            ambient_contrib = Irradiance_SphericalHarmonics(normal, false);
+        #endif
+
+        ambient = max(half3(0, 0, 0), ambient+ambient_contrib);     // include L2 contribution in vertex shader before clamp.
+        #ifdef UNITY_COLORSPACE_GAMMA
+            ambient = LinearToGammaSpace (ambient);
         #endif
     #endif
 
-    return finalSH;
+    return ambient;
 }
 
 /*
@@ -365,7 +446,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
     derivedLight = (Light)0;
 
     #if UNITY_SHOULD_SAMPLE_SH
-        irradiance = ShadeSHPerPixel(shading.normal, shading.ambient, shading.position);
+        irradiance = Irradiance_SphericalHarmonicsUnity(shading.normal, shading.ambient, shading.position);
     #endif
 
     #if defined(LIGHTMAP_ON)
@@ -416,7 +497,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
         #endif
     #endif
 
-    #ifdef DYNAMICLIGHTMAP_ON
+    #if defined(DYNAMICLIGHTMAP_ON)
         // Dynamic lightmaps
         fixed4 realtimeColorTex = SampleDynamicLightmapBicubic(shading.lightmapUV.zw);
         half3 realtimeColor = DecodeRealtimeLightmap (realtimeColorTex);
