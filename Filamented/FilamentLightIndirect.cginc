@@ -490,6 +490,15 @@ float3 prefilteredRadiance(const float3 r, float roughness, float offset) {
 half3 Unity_GlossyEnvironment_local (UNITY_ARGS_TEXCUBE(tex), half4 hdr, Unity_GlossyEnvironmentData glossIn)
 {
     half perceptualRoughness = glossIn.roughness /* perceptualRoughness */ ;
+
+    // Workaround for issue where objects are blurrier than they should be 
+    // due to specular AA.
+    #if !defined(TARGET_MOBILE) && defined(GEOMETRIC_SPECULAR_AA)
+    float roughnessAdjustment = 1-perceptualRoughness;
+    roughnessAdjustment = MIN_PERCEPTUAL_ROUGHNESS * roughnessAdjustment * roughnessAdjustment;
+    perceptualRoughness = perceptualRoughness - roughnessAdjustment;
+    #endif
+
     // Unity derivation
     perceptualRoughness = perceptualRoughness*(1.7 - 0.7 * perceptualRoughness);
     // Filament derivation
