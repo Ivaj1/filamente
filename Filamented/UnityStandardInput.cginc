@@ -256,6 +256,8 @@ struct PerPixelHeightDisplacementParam
     float2 dY;
 };
 
+#if (!defined(PARALLAX_CUSTOM_INPUT))
+
 PerPixelHeightDisplacementParam InitPerPixelHeightDisplacementParam(float2 uv)
 {
     PerPixelHeightDisplacementParam ppd;
@@ -304,6 +306,15 @@ float4 Parallax (float4 texcoords, half3 viewDir)
 #endif
     return texcoords;
 }
+
+#else
+// Dummy function
+float4 Parallax (float4 texcoords, half3 viewDir)
+{
+    return texcoords;
+}
+
+#endif
 
 #if (defined(_NORMALMAP) && defined(NORMALMAP_SHADOW))
 struct NormalMapShadowsParam
