@@ -276,7 +276,7 @@ struct VertexOutputForwardBase
     float4 tex                            : TEXCOORD0;
     float4 eyeVec                         : TEXCOORD1;    // eyeVec.xyz | fogCoord
     float4 tangentToWorldAndPackedData[3] : TEXCOORD2;    // [3x3:tangentToWorld | 1x3:viewDirForParallax or worldPos]
-    half4 ambientOrLightmapUV             : TEXCOORD5;    // SH or Lightmap UV
+    half4 ambientOrLightmapUV             : TEXCOORD5_centroid;    // SH or Lightmap UV
     UNITY_LIGHTING_COORDS(6,7)
 
     // next ones would not fit into SM2.0 limits, but they are always for SM3.0+
@@ -289,7 +289,7 @@ struct VertexOutputForwardBase
 #endif
 
 #if defined(HAS_ATTRIBUTE_COLOR)
-    float4 color                        : COLOR;
+    float4 color                        : COLOR_centroid;
 #endif
 
     UNITY_VERTEX_INPUT_INSTANCE_ID
