@@ -23,6 +23,13 @@ Shader "Silent/Filamented Template"
         _Emission("Emission Power", Float) = 0
         _EmissionColor("Emission Color", Color) = (1,1,1,1)
         [Space]
+        [KeywordEnum(None, SH, RNM)] _Bakery ("Bakery Mode", Int) = 0
+        [HideInInspector]_RNM0("RNM0", 2D) = "black" {}
+        [HideInInspector]_RNM1("RNM1", 2D) = "black" {}
+        [HideInInspector]_RNM2("RNM2", 2D) = "black" {}
+
+        [Toggle(_LTCGI)] _LTCGI ("LTCGI", Int) = 0
+        [Space]
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
 
         [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
@@ -192,7 +199,7 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
 
     SubShader
     {
-        Tags { "RenderType"="Opaque" "PerformanceChecks"="False" }
+        Tags { "RenderType"="Opaque" "PerformanceChecks"="False" "LTCGI" = "_LTCGI" }
         LOD 300
 
         // ------------------------------------------------------------------
@@ -212,6 +219,9 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
+            
+            #pragma shader_feature_local _ _BAKERY_RNM _BAKERY_SH
+            #pragma shader_feature_local _LTCGI
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
