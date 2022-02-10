@@ -75,6 +75,8 @@ namespace SilentTools
             public static GUIContent bakeryModeText = EditorGUIUtility.TrTextContent("Bakery Mode", "Sets the material to use one of Bakery's directionality map modes.");
             public static GUIContent bakeryRNMText = EditorGUIUtility.TrTextContent("Bakery Lightmap", "This texture is applied either by the Bakery runtime script or an external script according to the mesh renderer and can not be modified.");
 
+            public static GUIContent ltcgiModeText = EditorGUIUtility.TrTextContent("LTCGI Mode", "Sets whether the material can receive lights from LTCGI sources in the scene.");
+
             public static string primaryMapsText = "Main Maps";
             public static string secondaryMapsText = "Secondary Maps";
             public static string forwardText = "Forward Rendering Options";
@@ -127,6 +129,8 @@ namespace SilentTools
         MaterialProperty bakeryRNM0 = null;
         MaterialProperty bakeryRNM1 = null;
         MaterialProperty bakeryRNM2 = null;
+
+        MaterialProperty ltcgiMode = null;
 
         MaterialEditor m_MaterialEditor;
         WorkflowMode m_WorkflowMode = WorkflowMode.Specular;
@@ -191,6 +195,8 @@ namespace SilentTools
             bakeryRNM0 = FindProperty("_RNM0", props, false);
             bakeryRNM1 = FindProperty("_RNM1", props, false);
             bakeryRNM2 = FindProperty("_RNM2", props, false);
+
+            ltcgiMode = FindProperty("_LTCGI", props, false);
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
@@ -295,6 +301,16 @@ namespace SilentTools
                         EditorGUI.EndDisabledGroup();
                     }
     #endif
+
+    #if LTCGI_INCLUDED
+                    if (ltcgiMode != null)
+                        m_MaterialEditor.ShaderProperty(ltcgiMode, Styles.ltcgiModeText);
+    #else
+    // Force disabled when script isn't active to protect against compile failures.
+                    material.SetFloat("_LTCGI", 0.0f);
+                    material.DisableKeyword("_LTCGI");
+    #endif
+
                     if (lightmapSpecular != null)
                         m_MaterialEditor.ShaderProperty(lightmapSpecular, Styles.lightmapSpecularText);
                     if (lmSpecMaxSmoothness != null)

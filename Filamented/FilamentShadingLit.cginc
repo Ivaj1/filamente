@@ -13,6 +13,7 @@
 #include "FilamentLightIndirect.cginc"
 #include "FilamentShadingLit.cginc"
 #include "FilamentLightDirectional.cginc"
+#include "FilamentLightLTCGI.cginc"
 
 #include "UnityStandardInput.cginc"
 
@@ -295,6 +296,12 @@ float4 evaluateLights(const ShadingParams shading, const MaterialInputs material
     // it also saves 1 shader variant
 #if defined(UNITY_PASS_FORWARDBASE)
     evaluateIBL(shading, material, pixel, color);
+#endif
+
+    // In the future, it might be useful to occlude specular by the LTCGI 
+    // result, but that might be difficult to add here.
+#if defined(_LTCGI) && defined(UNITY_PASS_FORWARDBASE)
+    evaluateLTCGI(shading, pixel, color);
 #endif
 
 #if defined(HAS_DIRECTIONAL_LIGHTING)
