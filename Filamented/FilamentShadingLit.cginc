@@ -298,12 +298,6 @@ float4 evaluateLights(const ShadingParams shading, const MaterialInputs material
     evaluateIBL(shading, material, pixel, color);
 #endif
 
-    // In the future, it might be useful to occlude specular by the LTCGI 
-    // result, but that might be difficult to add here.
-#if defined(_LTCGI) && defined(UNITY_PASS_FORWARDBASE)
-    evaluateLTCGI(shading, pixel, color);
-#endif
-
 #if defined(HAS_DIRECTIONAL_LIGHTING)
     evaluateDirectionalLight(shading, material, pixel, color);
 #endif

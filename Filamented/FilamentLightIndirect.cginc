@@ -8,6 +8,7 @@
 #include "UnityStandardUtils.cginc"
 #include "UnityLightingCommon.cginc"
 #include "SharedFilteringLib.hlsl"
+#include "FilamentLightLTCGI.cginc"
 
 //------------------------------------------------------------------------------
 // Image based lighting configuration
@@ -817,13 +818,33 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 
     // Gather Unity GI data
     UnityGIInput unityData = InitialiseUnityGIInput(shading, pixel);
-    #if defined(MATERIAL_HAS_NORMAL)
+#if defined(MATERIAL_HAS_NORMAL)
     tangentNormal = material.normal;
-    #endif
+#endif
     float3 unityIrradiance = UnityGI_Irradiance(shading, tangentNormal, lightmapAO, derivedLight);
 
     float diffuseAO = min(material.ambientOcclusion, ssao);
     float specularAO = computeSpecularAO(shading.NoV, diffuseAO*lightmapAO, pixel.roughness);
+
+    // Gather LTCGI data, if present.
+#if defined(_LTCGI)
+    float3 ltcDiffuse = 0;
+    float3 ltcSpecular = 0;
+    float ltcSpecularIntensity = 0;
+
+    LTCGI_Contribution(
+        shading.position, 
+        shading.normal, 
+        shading.view, 
+        pixel.perceptualRoughness, 
+        shading.lightmapUV.xy, 
+        /* out */ ltcDiffuse,
+        /* out */ ltcSpecular,
+        /* out */ ltcSpecularIntensity
+    );
+    color.rgb += ltcDiffuse + ltcSpecular;
+    specularAO *= saturate(1-ltcSpecularIntensity);
+#endif
 
     // specular layer
     float3 Fr;
