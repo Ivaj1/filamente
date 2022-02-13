@@ -439,6 +439,11 @@ float3 DecodeSHLightmap(half3 L0, half2 lightmapUV, half3 normalWorld, out Light
 }
 #endif
 
+float IrradianceToExposureOcclusion(float3 irradiance)
+{
+    return saturate(length(irradiance + FLT_EPS) * getExposureOcclusionBias());
+}
+
 // Return light probes or lightmap.
 float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float occlusion, out Light derivedLight)
 {
@@ -461,7 +466,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
             fixed4 bakedDirTex = SampleLightmapDirBicubic (shading.lightmapUV.xy);
             irradiance += DecodeDirectionalLightmap (bakedColor, bakedDirTex, shading.normal);
 
-            occlusion = saturate(length(irradiance) * getExposureOcclusionBias());
+            occlusion = IrradianceToExposureOcclusion(irradiance);
 
             #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
                 irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, shading.normal);
@@ -485,7 +490,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
                 irradiance = DecodeSHLightmap(bakedColor, shading.lightmapUV.xy, shading.normal, derivedLight);
                 #endif
 
-                occlusion = saturate(length(irradiance) * getExposureOcclusionBias());
+                occlusion = IrradianceToExposureOcclusion(irradiance);
 
                 #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
                     irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap(irradiance, shading.attenuation, bakedColorTex, shading.normal);
@@ -495,7 +500,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
 
                 irradiance += bakedColor;
 
-                occlusion = saturate(length(irradiance) * getExposureOcclusionBias());
+                occlusion = IrradianceToExposureOcclusion(irradiance);
 
                 #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
                     irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap(irradiance, shading.attenuation, bakedColorTex, shading.normal);
