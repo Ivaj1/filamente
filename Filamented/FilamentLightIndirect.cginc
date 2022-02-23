@@ -28,6 +28,20 @@
 
 #define IBL_INTEGRATION_IMPORTANCE_SAMPLING_COUNT   64
 
+// Refraction defines
+#define REFRACTION_TYPE_SOLID 0
+#define REFRACTION_TYPE_THIN 1
+
+#ifndef REFRACTION_TYPE
+#define REFRACTION_TYPE REFRACTION_TYPE_SOLID
+#endif
+
+#define REFRACTION_MODE_CUBEMAP 0
+#define REFRACTION_MODE_SCREEN 1
+
+#ifndef REFRACTION_MODE
+#define REFRACTION_MODE REFRACTION_MODE_CUBEMAP
+#endif
 
 //------------------------------------------------------------------------------
 // IBL prefiltered DFG term implementations
@@ -606,12 +620,12 @@ half3 Unity_GlossyEnvironment_local (UNITY_ARGS_TEXCUBE(tex), half4 hdr, Unity_G
 
 // Workaround: Construct the correct Unity variables and get the correct Unity spec values
 
-inline half3 UnityGI_prefilteredRadiance(const UnityGIInput data, const PixelParams pixel, const float3 r)
+inline half3 UnityGI_prefilteredRadiance(const UnityGIInput data, const float perceptualRoughness, const float3 r)
 {
     half3 specular;
 
     Unity_GlossyEnvironmentData glossIn = (Unity_GlossyEnvironmentData)0;
-    glossIn.roughness = pixel.perceptualRoughness;
+    glossIn.roughness = perceptualRoughness;
     glossIn.reflUVW = r;
 
     #ifdef UNITY_SPECCUBE_BOX_PROJECTION
@@ -803,12 +817,150 @@ void evaluateSubsurfaceIBL(const ShadingParams shading, const PixelParams pixel,
 #endif
 }
 
-void combineDiffuseAndSpecular(const PixelParams pixel,
-        const float3 n, const float3 E, const float3 Fd, const float3 Fr,
+#if defined(HAS_REFRACTION)
+
+struct Refraction {
+    float3 position;
+    float3 direction;
+    float d;
+};
+
+void refractionSolidSphere(const ShadingParams shading, const PixelParams pixel,
+    const float3 n, float3 r, out Refraction ray) {
+    r = refract(r, n, pixel.etaIR);
+    float NoR = dot(n, r);
+    float d = pixel.thickness * -NoR;
+    ray.position = float3(shading.position + r * d);
+    ray.d = d;
+    float3 n1 = normalize(NoR * r - n * 0.5);
+    ray.direction = refract(r, n1,  pixel.etaRI);
+}
+
+void refractionSolidBox(const ShadingParams shading, const PixelParams pixel,
+    const float3 n, float3 r, out Refraction ray) {
+    float3 rr = refract(r, n, pixel.etaIR);
+    float NoR = dot(n, rr);
+    float d = pixel.thickness / max(-NoR, 0.001);
+    ray.position = float3(shading.position + rr * d);
+    ray.direction = r;
+    ray.d = d;
+#if REFRACTION_MODE == REFRACTION_MODE_CUBEMAP
+    // fudge direction vector, so we see the offset due to the thickness of the object
+    float envDistance = 10.0; // this should come from a ubo
+    ray.direction = normalize((ray.position - shading.position) + ray.direction * envDistance);
+#endif
+}
+
+void refractionThinSphere(const ShadingParams shading, const PixelParams pixel,
+    const float3 n, float3 r, out Refraction ray) {
+    float d = 0.0;
+#if defined(MATERIAL_HAS_MICRO_THICKNESS)
+    // note: we need the refracted ray to calculate the distance traveled
+    // we could use shading.NoV, but we would lose the dependency on ior.
+    float3 rr = refract(r, n, pixel.etaIR);
+    float NoR = dot(n, rr);
+    d = pixel.uThickness / max(-NoR, 0.001);
+    ray.position = float3(shading.position + rr * d);
+#else
+    ray.position = float3(shading.position);
+#endif
+    ray.direction = r;
+    ray.d = d;
+}
+
+void applyRefraction(
+    const ShadingParams shading, 
+    const PixelParams pixel,
+    float3 E, float3 Fd, float3 Fr,
+    inout float3 color) {
+
+    Refraction ray;
+    float iblLuminance = 1.0; // unused
+    float refractionLodOffset = 0.0; // unused
+
+#if REFRACTION_TYPE == REFRACTION_TYPE_SOLID
+    refractionSolidSphere(shading, pixel, shading.normal, -shading.view, ray);
+#elif REFRACTION_TYPE == REFRACTION_TYPE_THIN
+    refractionThinSphere(shading, pixel, shading.normal, -shading.view, ray);
+#else
+#error invalid REFRACTION_TYPE
+#endif
+
+    // compute transmission T
+#if defined(MATERIAL_HAS_ABSORPTION)
+#if defined(MATERIAL_HAS_THICKNESS) || defined(MATERIAL_HAS_MICRO_THICKNESS)
+    float3 T = min(1.0, exp(-pixel.absorption * ray.d));
+#else
+    float3 T = 1.0 - pixel.absorption;
+#endif
+#endif
+
+    // Roughness remapping so that an IOR of 1.0 means no microfacet refraction and an IOR
+    // of 1.5 has full microfacet refraction
+    float perceptualRoughness = lerp(pixel.perceptualRoughnessUnclamped, 0.0,
+            saturate(pixel.etaIR * 3.0 - 2.0));
+#if REFRACTION_TYPE == REFRACTION_TYPE_THIN
+    // For thin surfaces, the light will bounce off at the second interface in the direction of
+    // the reflection, effectively adding to the specular, but this process will repeat itself.
+    // Each time the ray exits the surface on the front side after the first bounce,
+    // it's multiplied by E^2, and we get: E + E(1-E)^2 + E^3(1-E)^2 + ...
+    // This infinite series converges and is easy to simplify.
+    // Note: we calculate these bounces only on a single component,
+    // since it's a fairly subtle effect.
+    E *= 1.0 + pixel.transmission * (1.0 - E.g) / (1.0 + E.g);
+#endif
+
+    /* sample the cubemap or screen-space */
+#if REFRACTION_MODE == REFRACTION_MODE_CUBEMAP
+    // when reading from the cubemap, we are not pre-exposed so we apply iblLuminance
+    // which is not the case when we'll read from the screen-space buffer
+
+    // Gather Unity GI data
+    UnityGIInput unityData = InitialiseUnityGIInput(shading, pixel);
+    float3 Ft = UnityGI_prefilteredRadiance(unityData, perceptualRoughness, ray.direction) * iblLuminance;
+#else
+    // compute the point where the ray exits the medium, if needed
+    //float4 p = float4(frameUniforms.clipFromWorldMatrix * float4(ray.position, 1.0));
+    //p.xy = uvToRenderTargetUV(p.xy * (0.5 / p.w) + 0.5);
+    float4 p = UnityWorldToClipPos(float4(ray.position, 1.0));
+    p.w =  (0.5 / p.w);
+    p.xy = ComputeGrabScreenPos(p);
+
+    // perceptualRoughness to LOD
+    // Empirical factor to compensate for the gaussian approximation of Dggx, chosen so
+    // cubemap and screen-space modes match at perceptualRoughness 0.125
+    // TODO: Remove this factor temporarily until we find a better solution
+    //       This overblurs many scenes and needs a more principled approach
+    // float tweakedPerceptualRoughness = perceptualRoughness * 1.74;
+    float tweakedPerceptualRoughness = perceptualRoughness;
+    float lod = max(0.0, 2.0 * log2(tweakedPerceptualRoughness) + refractionLodOffset);
+
+    float3 Ft = UNITY_SAMPLE_TEX2D_LOD(REFRACTION_SOURCE, p.xy, lod).rgb * REFRACTION_MULTIPLIER;
+#endif
+
+    // base color changes the amount of light passing through the boundary
+    Ft *= pixel.diffuseColor;
+
+    // fresnel from the first interface
+    Ft *= 1.0 - E;
+
+    // apply absorption
+#if defined(MATERIAL_HAS_ABSORPTION)
+    Ft *= T;
+#endif
+
+    Fr *= iblLuminance;
+    Fd *= iblLuminance;
+    color.rgb += Fr + lerp(Fd, Ft, pixel.transmission);
+}
+#endif
+
+void combineDiffuseAndSpecular(const ShadingParams shading, const PixelParams pixel,
+        const float3 E, const float3 Fd, const float3 Fr,
         inout float3 color) {
     const float iblLuminance = 1.0; // Unknown
 #if defined(HAS_REFRACTION)
-    applyRefraction(pixel, n, E, Fd, Fr, color);
+    applyRefraction(shading, pixel, E, Fd, Fr, color);
 #else
     color.rgb += (Fd + Fr) * iblLuminance;
 #endif
@@ -831,6 +983,18 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     float diffuseAO = min(material.ambientOcclusion, ssao);
     float specularAO = computeSpecularAO(shading.NoV, diffuseAO*lightmapAO, pixel.roughness);
 
+    // specular layer
+    float3 Fr;
+#if IBL_INTEGRATION == IBL_INTEGRATION_PREFILTERED_CUBEMAP
+    float3 E = specularDFG(pixel);
+    float3 r = getReflectedVector(shading, pixel, shading.normal);
+    Fr = E * UnityGI_prefilteredRadiance(unityData, pixel.perceptualRoughness, r);
+#elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
+    // Not supported
+    float3 E = float3(0.0); // TODO: fix for importance sampling
+    Fr = isEvaluateSpecularIBL(pixel, shading.normal, shading.view, shading.NoV);
+#endif
+
     // Gather LTCGI data, if present.
 #if defined(_LTCGI)
     float3 ltcDiffuse = 0;
@@ -851,16 +1015,6 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     specularAO *= saturate(1-ltcSpecularIntensity);
 #endif
 
-    // specular layer
-    float3 Fr;
-#if IBL_INTEGRATION == IBL_INTEGRATION_PREFILTERED_CUBEMAP
-    float3 E = specularDFG(pixel);
-    float3 r = getReflectedVector(shading, pixel, shading.normal);
-    Fr = E * UnityGI_prefilteredRadiance(unityData, pixel, r);
-#elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
-    // Not supported
-    float3 E = float3(0.0); // TODO: fix for importance sampling
-    Fr = isEvaluateSpecularIBL(pixel, shading.normal, shading.view, shading.NoV);
 #endif
     Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
 
@@ -898,7 +1052,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     evaluateClearCoatIBL(shading, pixel, diffuseAO, Fd, Fr);
     
     // Note: iblLuminance is already premultiplied by the exposure
-    combineDiffuseAndSpecular(pixel, shading.normal, E, Fd, Fr, color);
+    combineDiffuseAndSpecular(shading, pixel, E, Fd, Fr, color);
 
     #if defined(LIGHTMAP_SPECULAR)
     PixelParams pixelForBakedSpecular = pixel;
