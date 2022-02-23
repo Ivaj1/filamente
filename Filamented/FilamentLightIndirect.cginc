@@ -1006,7 +1006,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
         shading.normal, 
         shading.view, 
         pixel.perceptualRoughness, 
-        shading.lightmapUV.xy, 
+        (shading.lightmapUV.xy - unity_LightmapST.zw) / unity_LightmapST.xy,
         /* out */ ltcDiffuse,
         /* out */ ltcSpecular,
         /* out */ ltcSpecularIntensity
