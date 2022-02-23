@@ -1011,12 +1011,15 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
         /* out */ ltcSpecular,
         /* out */ ltcSpecularIntensity
     );
-    color.rgb += ltcDiffuse + ltcSpecular;
-    specularAO *= saturate(1-ltcSpecularIntensity);
-#endif
 
 #endif
+
+#if defined(_LTCGI)
+    Fr *= singleBounceAO(specularAO*saturate(1-ltcSpecularIntensity)) * pixel.energyCompensation;
+    Fr += (E * ltcSpecular) * singleBounceAO(specularAO) * pixel.energyCompensation;
+#else
     Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
+#endif
 
     // diffuse layer
     float diffuseBRDF = singleBounceAO(diffuseAO); // Fd_Lambert() is baked in the SH below
@@ -1037,6 +1040,10 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 #endif
 
     float3 Fd = pixel.diffuseColor * diffuseIrradiance * (1.0 - E) * diffuseBRDF;
+
+#if defined(_LTCGI)
+    Fd += pixel.diffuseColor * ltcDiffuse * (1.0 - E) * diffuseBRDF;
+#endif
 
     // subsurface layer
     evaluateSubsurfaceIBL(shading, pixel, diffuseIrradiance, Fd, Fr);
