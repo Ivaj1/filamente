@@ -1039,11 +1039,11 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     float3 diffuseIrradiance = isEvaluateDiffuseIBL(pixel, diffuseNormal, shading.view);
 #endif
 
-    float3 Fd = pixel.diffuseColor * diffuseIrradiance * (1.0 - E) * diffuseBRDF;
-
 #if defined(_LTCGI)
-    Fd += pixel.diffuseColor * ltcDiffuse * (1.0 - E) * diffuseBRDF;
+    diffuseIrradiance += ltcDiffuse;
 #endif
+
+    float3 Fd = pixel.diffuseColor * diffuseIrradiance * (1.0 - E) * diffuseBRDF;
 
     // subsurface layer
     evaluateSubsurfaceIBL(shading, pixel, diffuseIrradiance, Fd, Fr);
