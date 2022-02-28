@@ -769,7 +769,7 @@ void evaluateSheenIBL(const ShadingParams shading, const PixelParams pixel,
     Fr *= pixel.sheenScaling;
 
     float3 reflectance = pixel.sheenDFG * pixel.sheenColor;
-    reflectance *= specularAO(shading_NoV, diffuseAO, pixel.sheenRoughness);
+    reflectance *= computeSpecularAO(shading_NoV, diffuseAO, pixel.sheenRoughness);
 
     Fr += reflectance * prefilteredRadiance(shading.reflected, pixel.sheenPerceptualRoughness);
 #endif
@@ -779,7 +779,7 @@ void evaluateSheenIBL(const ShadingParams shading, const PixelParams pixel,
 void evaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel, 
     float diffuseAO, inout float3 Fd, inout float3 Fr) {
 #if IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
-    float specularAO = specularAO(shading_NoV, diffuseAO, pixel.clearCoatRoughness);
+    float specularAO = computeSpecularAO(shading_NoV, diffuseAO, pixel.clearCoatRoughness);
     isEvaluateClearCoatIBL(pixel, specularAO, Fd, Fr);
     return;
 #endif
@@ -800,7 +800,7 @@ void evaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel,
     Fr *= attenuation;
 
     // TODO: Should we apply specularAO to the attenuation as well?
-    float specularAO = specularAO(clearCoatNoV, diffuseAO, pixel.clearCoatRoughness);
+    float specularAO = computeSpecularAO(clearCoatNoV, diffuseAO, pixel.clearCoatRoughness);
     Fr += prefilteredRadiance(clearCoatR, pixel.clearCoatPerceptualRoughness) * (specularAO * Fc);
 #endif
 }
