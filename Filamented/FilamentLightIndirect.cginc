@@ -1015,11 +1015,10 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 #endif
 
 #if defined(_LTCGI)
-    Fr *= singleBounceAO(specularAO*saturate(1-ltcSpecularIntensity)) * pixel.energyCompensation;
-    Fr += (E * ltcSpecular) * singleBounceAO(specularAO) * pixel.energyCompensation;
-#else
-    Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
+    Fr = lerp(Fr, E * ltcSpecular, saturate(ltcSpecularIntensity));
 #endif
+
+    Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
 
     // diffuse layer
     float diffuseBRDF = singleBounceAO(diffuseAO); // Fd_Lambert() is baked in the SH below
