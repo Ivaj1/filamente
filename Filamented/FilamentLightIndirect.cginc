@@ -462,6 +462,7 @@ float IrradianceToExposureOcclusion(float3 irradiance)
 float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float occlusion, out Light derivedLight)
 {
     float3 irradiance = shading.ambient;
+    float3 irradianceForAO;
     occlusion = 1.0;
     derivedLight = (Light)0;
 
@@ -469,6 +470,8 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
         irradiance = Irradiance_SphericalHarmonicsUnity(shading.normal, shading.ambient, shading.position);
         occlusion = saturate(length(irradiance) * getExposureOcclusionBias());
     #endif
+
+    irradianceForAO = irradiance;
 
     #if defined(LIGHTMAP_ON)
         // Baked lightmaps
@@ -480,7 +483,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
             fixed4 bakedDirTex = SampleLightmapDirBicubic (shading.lightmapUV.xy);
             irradiance += DecodeDirectionalLightmap (bakedColor, bakedDirTex, shading.normal);
 
-            occlusion = IrradianceToExposureOcclusion(irradiance);
+            irradianceForAO = irradiance;
 
             #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
                 irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, shading.normal);
@@ -489,7 +492,6 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
             #if defined(LIGHTMAP_SPECULAR) 
                 irradiance = DecodeDirectionalLightmapSpecular(bakedColor, bakedDirTex, shading.normal, false, 0, derivedLight);
             #endif
-
 
         #else // not directional lightmap
 
@@ -504,7 +506,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
                 irradiance = DecodeSHLightmap(bakedColor, shading.lightmapUV.xy, shading.normal, derivedLight);
                 #endif
 
-                occlusion = IrradianceToExposureOcclusion(irradiance);
+                irradianceForAO = irradiance;
 
                 #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
                     irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap(irradiance, shading.attenuation, bakedColorTex, shading.normal);
@@ -514,7 +516,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
 
                 irradiance += bakedColor;
 
-                occlusion = IrradianceToExposureOcclusion(irradiance);
+                irradianceForAO = irradiance;
 
                 #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
                     irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap(irradiance, shading.attenuation, bakedColorTex, shading.normal);
@@ -529,7 +531,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
         fixed4 realtimeColorTex = SampleDynamicLightmapBicubic(shading.lightmapUV.zw);
         half3 realtimeColor = DecodeRealtimeLightmap (realtimeColorTex);
 
-        occlusion *= saturate(length(realtimeColor) * getExposureOcclusionBias());
+        irradianceForAO += realtimeColor;
 
         #ifdef DIRLIGHTMAP_COMBINED
             half4 realtimeDirTex = SampleDynamicLightmapDirBicubic(shading.lightmapUV.zw);
@@ -538,6 +540,8 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
             irradiance += realtimeColor;
         #endif
     #endif
+    
+    occlusion = IrradianceToExposureOcclusion(irradianceForAO);
 
     return irradiance;
 }
