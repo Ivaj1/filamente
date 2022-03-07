@@ -12,7 +12,8 @@ namespace SilentTools
             Specular,
             Metallic,
             Dielectric,
-            Roughness
+            Roughness,
+            Cloth
         }
 
         public enum BlendMode
@@ -77,6 +78,8 @@ namespace SilentTools
 
             public static GUIContent ltcgiModeText = EditorGUIUtility.TrTextContent("LTCGI Mode", "Sets whether the material can receive lights from LTCGI sources in the scene.");
 
+            public static GUIContent sheenText = EditorGUIUtility.TrTextContent("Sheen", "Sheen colour (RGB) and glossiness (A) for cloth");
+
             public static string primaryMapsText = "Main Maps";
             public static string secondaryMapsText = "Secondary Maps";
             public static string forwardText = "Forward Rendering Options";
@@ -131,6 +134,7 @@ namespace SilentTools
         MaterialProperty bakeryRNM2 = null;
 
         MaterialProperty ltcgiMode = null;
+        MaterialProperty isCloth = null;
 
         MaterialEditor m_MaterialEditor;
         WorkflowMode m_WorkflowMode = WorkflowMode.Specular;
@@ -149,8 +153,12 @@ namespace SilentTools
             specularColor = FindProperty("_SpecColor", props, false);
             metallicMap = FindProperty("_MetallicGlossMap", props, false);
             metallic = FindProperty("_Metallic", props, false);
+
+            isCloth = FindProperty("_ShaderType_Cloth", props, false);
             // todo: find a better way to handle this
-            if (specularMap != null && specularMap.displayName == "Roughness Map") 
+            if (isCloth != null)
+                m_WorkflowMode = WorkflowMode.Cloth;
+            else if (specularMap != null && specularMap.displayName == "Roughness Map") 
                 m_WorkflowMode = WorkflowMode.Roughness;
             else if (specularMap != null && specularColor != null)
                 m_WorkflowMode = WorkflowMode.Specular;
@@ -347,7 +355,9 @@ namespace SilentTools
 
         internal void DetermineWorkflow(MaterialProperty[] props)
         {
-            if (FindProperty("_SpecGlossMap", props, false) != null && FindProperty("_SpecColor", props, false) != null)
+            if (FindProperty("_ShaderType_Cloth", props, false) != null)
+                m_WorkflowMode = WorkflowMode.Cloth;
+            else if (FindProperty("_SpecGlossMap", props, false) != null && FindProperty("_SpecColor", props, false) != null)
                 m_WorkflowMode = WorkflowMode.Specular;
                 if (FindProperty("_SpecGlossMap", props, false).displayName == "Roughness Map") 
                     m_WorkflowMode = WorkflowMode.Roughness; 
@@ -490,6 +500,12 @@ namespace SilentTools
                 hasGlossMap = metallicMap.textureValue != null;
                 m_MaterialEditor.TexturePropertySingleLine(Styles.metallicMapText, metallicMap, hasGlossMap ? null : metallic);
             }
+            else if (m_WorkflowMode == WorkflowMode.Cloth)
+            {
+                hasGlossMap = specularMap.textureValue != null;
+                // Always show colour for tinting
+                m_MaterialEditor.TexturePropertySingleLine(Styles.sheenText, specularMap, specularColor);
+            }
 
             bool showSmoothnessScale = hasGlossMap;
             if (smoothnessMapChannel != null)
@@ -593,7 +609,7 @@ namespace SilentTools
             } 
             else 
             {
-                if (workflowMode == WorkflowMode.Specular)
+                if (workflowMode == WorkflowMode.Specular || workflowMode == WorkflowMode.Cloth)
                     SetKeyword(material, "_SPECGLOSSMAP", material.GetTexture("_SpecGlossMap"));
                 else if (workflowMode == WorkflowMode.Metallic)
                     SetKeyword(material, "_METALLICGLOSSMAP", material.GetTexture("_MetallicGlossMap"));

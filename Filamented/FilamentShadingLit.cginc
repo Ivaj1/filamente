@@ -8,11 +8,19 @@
 #include "FilamentCommonMaterial.cginc"
 #include "FilamentCommonShading.cginc"
 
-#include "FilamentBRDF.cginc"
-#include "FilamentShadingStandard.cginc"
+
+#if defined(SHADING_MODEL_SUBSURFACE)
+    #include "FilamentShadingSubsurface.cginc"
+#elif defined(SHADING_MODEL_CLOTH)
+    #include "FilamentShadingCloth.cginc"
+#else
+    #include "FilamentShadingStandard.cginc"
+#endif
+
 #include "FilamentLightIndirect.cginc"
 #include "FilamentShadingLit.cginc"
 #include "FilamentLightDirectional.cginc"
+#include "FilamentLightPunctual.cginc"
 #include "FilamentLightLTCGI.cginc"
 
 #include "UnityStandardInput.cginc"

@@ -224,6 +224,29 @@ half3 Emission(float2 uv)
 #endif
 }
 
+half4 SheenColorGlossCloth(float2 uv)
+{
+    half4 sg;
+#ifdef _SPECGLOSSMAP
+    #if defined(_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A)
+        sg.rgb = tex2D(_SpecGlossMap, uv).rgb;
+        sg.a = tex2D(_MainTex, uv).a;
+    #else
+        sg = tex2D(_SpecGlossMap, uv);
+    #endif
+    sg.rgb *= _SpecColor.rgb;
+    sg.a *= _GlossMapScale;
+#else
+    sg.rgb = _SpecColor.rgb;
+    #ifdef _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+        sg.a = tex2D(_MainTex, uv).a * _GlossMapScale;
+    #else
+        sg.a = _Glossiness;
+    #endif
+#endif
+    return sg;
+}
+
 #ifdef _NORMALMAP
 half3 NormalInTangentSpace(float4 texcoords)
 {

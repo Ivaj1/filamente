@@ -25,11 +25,6 @@
 #include "UnityGBuffer.cginc"
 #include "UnityGlobalIllumination.cginc"
 
-#include "FilamentBRDF.cginc"
-#include "FilamentShadingStandard.cginc"
-#include "FilamentLightIndirect.cginc"
-#include "FilamentLightDirectional.cginc"
-#include "FilamentLightPunctual.cginc"
 #include "FilamentShadingLit.cginc"
 
 #include "AutoLight.cginc"
@@ -151,6 +146,25 @@ void GetBakedAttenuation(inout float atten, float2 lightmapUV, float3 worldPos)
 #define MATERIAL_SETUP_FWDADD(x) MaterialInputs x = \
     MaterialSetup(i.tex, i.eyeVec.xyz, IN_VIEWDIR4PARALLAX_FWDADD(i), i.tangentToWorldAndLightDir, IN_WORLDPOS_FWDADD(i));
 
+#if defined(SHADING_MODEL_CLOTH)
+    #define SETUP_BRDF_INPUT ClothMaterialSetup
+inline MaterialInputs ClothMaterialSetup (float4 i_tex)
+{   
+    half4 baseColor = half4(Albedo(i_tex), Alpha(i_tex));
+    half4 specGloss = SheenColorGlossCloth(i_tex.xy);
+    half3 specColor = specGloss.rgb;
+    half smoothness = specGloss.a;
+
+    MaterialInputs material = (MaterialInputs)0;
+    initMaterial(material);
+    material.baseColor = baseColor;
+    #if defined(MATERIAL_HAS_SHEEN_COLOR)
+    material.sheenColor = specColor;
+    #endif
+    material.roughness = computeRoughnessFromGlossiness(smoothness);
+    return material;
+}
+#else
 
 // Filament's preferred model, but not Unity's default
 #if defined(SHADING_MODEL_METALLIC_ROUGHNESS)
@@ -205,6 +219,7 @@ inline MaterialInputs MetallicMaterialSetup (float4 i_tex)
     material.roughness = computeRoughnessFromGlossiness(smoothness);
     return material;
 }
+#endif
 #endif
 #endif
 
