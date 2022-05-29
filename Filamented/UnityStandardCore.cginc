@@ -462,7 +462,7 @@ struct VertexOutputForwardAdd
 #endif
 
 #if defined(HAS_ATTRIBUTE_COLOR)
-    float4 color                        : COLOR;
+    float4 color                        : COLOR_centroid;
 #endif
 
     UNITY_VERTEX_OUTPUT_STEREO
