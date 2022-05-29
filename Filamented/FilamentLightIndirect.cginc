@@ -773,7 +773,7 @@ void evaluateSheenIBL(const ShadingParams shading, const PixelParams pixel,
     Fr *= pixel.sheenScaling;
 
     float3 reflectance = pixel.sheenDFG * pixel.sheenColor;
-    reflectance *= computeSpecularAO(shading_NoV, diffuseAO, pixel.sheenRoughness);
+    reflectance *= computeSpecularAO(shading.NoV, diffuseAO, pixel.sheenRoughness);
 
     Fr += reflectance * prefilteredRadiance(shading.reflected, pixel.sheenPerceptualRoughness);
 #endif
@@ -783,7 +783,7 @@ void evaluateSheenIBL(const ShadingParams shading, const PixelParams pixel,
 void evaluateClearCoatIBL(const ShadingParams shading, const PixelParams pixel, 
     float diffuseAO, inout float3 Fd, inout float3 Fr) {
 #if IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
-    float specularAO = computeSpecularAO(shading_NoV, diffuseAO, pixel.clearCoatRoughness);
+    float specularAO = computeSpecularAO(shading.NoV, diffuseAO, pixel.clearCoatRoughness);
     isEvaluateClearCoatIBL(pixel, specularAO, Fd, Fr);
     return;
 #endif
