@@ -60,7 +60,7 @@ fixed4 SampleShadowMaskBicubic(float2 uv)
 
         float4 unity_ShadowMask_TexelSize = float4(width, height, 1.0/width, 1.0/height);
 
-        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_ShadowMask, samplerunity_ShadowMask),
+        return SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(unity_ShadowMask, samplerunity_ShadowMask),
             uv, unity_ShadowMask_TexelSize);
     #else
         return SAMPLE_TEXTURE2D(unity_ShadowMask, samplerunity_ShadowMask, uv);

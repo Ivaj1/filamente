@@ -255,7 +255,7 @@ float4 SampleLightmapBicubic(float2 uv)
 
         float4 unity_Lightmap_TexelSize = float4(width, height, 1.0/width, 1.0/height);
 
-        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_Lightmap, samplerunity_Lightmap),
+        return SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(unity_Lightmap, samplerunity_Lightmap),
             uv, unity_Lightmap_TexelSize);
     #else
         return SAMPLE_TEXTURE2D(unity_Lightmap, samplerunity_Lightmap, uv);
@@ -270,7 +270,7 @@ float4 SampleLightmapDirBicubic(float2 uv)
 
         float4 unity_LightmapInd_TexelSize = float4(width, height, 1.0/width, 1.0/height);
 
-        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_LightmapInd, samplerunity_Lightmap),
+        return SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(unity_LightmapInd, samplerunity_Lightmap),
             uv, unity_LightmapInd_TexelSize);
     #else
         return SAMPLE_TEXTURE2D(unity_LightmapInd, samplerunity_Lightmap, uv);
@@ -285,7 +285,7 @@ float4 SampleDynamicLightmapBicubic(float2 uv)
 
         float4 unity_DynamicLightmap_TexelSize = float4(width, height, 1.0/width, 1.0/height);
 
-        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_DynamicLightmap, samplerunity_DynamicLightmap),
+        return SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(unity_DynamicLightmap, samplerunity_DynamicLightmap),
             uv, unity_DynamicLightmap_TexelSize);
     #else
         return SAMPLE_TEXTURE2D(unity_DynamicLightmap, samplerunity_DynamicLightmap, uv);
@@ -300,7 +300,7 @@ float4 SampleDynamicLightmapDirBicubic(float2 uv)
 
         float4 unity_DynamicDirectionality_TexelSize = float4(width, height, 1.0/width, 1.0/height);
 
-        return SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(unity_DynamicDirectionality, samplerunity_DynamicLightmap),
+        return SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(unity_DynamicDirectionality, samplerunity_DynamicLightmap),
             uv, unity_DynamicDirectionality_TexelSize);
     #else
         return SAMPLE_TEXTURE2D(unity_DynamicDirectionality, samplerunity_DynamicLightmap, uv);
@@ -357,9 +357,9 @@ float3 DecodeRNMLightmap(half3 color, half2 lightmapUV, half3 normalTangent, flo
 
         float4 rnm_TexelSize = float4(width, height, 1.0/width, 1.0/height);
         
-        float3 rnm0 = DecodeLightmap(SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(_RNM0, sampler_RNM0), lightmapUV, rnm_TexelSize));
-        float3 rnm1 = DecodeLightmap(SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(_RNM1, sampler_RNM0), lightmapUV, rnm_TexelSize));
-        float3 rnm2 = DecodeLightmap(SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(_RNM2, sampler_RNM0), lightmapUV, rnm_TexelSize));
+        float3 rnm0 = DecodeLightmap(SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(_RNM0, sampler_RNM0), lightmapUV, rnm_TexelSize));
+        float3 rnm1 = DecodeLightmap(SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(_RNM1, sampler_RNM0), lightmapUV, rnm_TexelSize));
+        float3 rnm2 = DecodeLightmap(SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(_RNM2, sampler_RNM0), lightmapUV, rnm_TexelSize));
     #else
         float3 rnm0 = DecodeLightmap(SAMPLE_TEXTURE2D(_RNM0, sampler_RNM0, lightmapUV));
         float3 rnm1 = DecodeLightmap(SAMPLE_TEXTURE2D(_RNM1, sampler_RNM0, lightmapUV));
@@ -406,9 +406,9 @@ float3 DecodeSHLightmap(half3 L0, half2 lightmapUV, half3 normalWorld, out Light
 
         float4 rnm_TexelSize = float4(width, height, 1.0/width, 1.0/height);
         
-        float3 nL1x = SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(_RNM0, sampler_RNM0), lightmapUV, rnm_TexelSize);
-        float3 nL1y = SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(_RNM1, sampler_RNM0), lightmapUV, rnm_TexelSize);
-        float3 nL1z = SampleTexture2DBicubicFilter(TEXTURE2D_PARAM(_RNM2, sampler_RNM0), lightmapUV, rnm_TexelSize);
+        float3 nL1x = SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(_RNM0, sampler_RNM0), lightmapUV, rnm_TexelSize);
+        float3 nL1y = SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(_RNM1, sampler_RNM0), lightmapUV, rnm_TexelSize);
+        float3 nL1z = SampleTexture2DBicubicFilter(TEXTURE2D_ARGS(_RNM2, sampler_RNM0), lightmapUV, rnm_TexelSize);
     #else
         float3 nL1x = SAMPLE_TEXTURE2D(_RNM0, sampler_RNM0, lightmapUV);
         float3 nL1y = SAMPLE_TEXTURE2D(_RNM1, sampler_RNM0, lightmapUV);
