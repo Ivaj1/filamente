@@ -453,6 +453,52 @@ float3 DecodeSHLightmap(half3 L0, half2 lightmapUV, half3 normalWorld, out Light
 }
 #endif
 
+#if defined(_BAKERY_MONOSH)
+float3 DecodeMonoSHLightmap(half3 L0, half2 lightmapUV, half3 normalWorld, out Light o_light)
+{
+    o_light = (Light)0;
+
+    float3 dominantDir = SampleLightmapDirBicubic (lightmapUV);
+
+    float3 nL1 = dominantDir * 2 - 1;
+    float3 L1x = nL1.x * L0 * 2;
+    float3 L1y = nL1.y * L0 * 2;
+    float3 L1z = nL1.z * L0 * 2;
+
+    float3 sh;
+
+#if BAKERY_SHNONLINEAR
+    float lumaL0 = dot(L0, 1);
+    float lumaL1x = dot(L1x, 1);
+    float lumaL1y = dot(L1y, 1);
+    float lumaL1z = dot(L1z, 1);
+    float lumaSH = shEvaluateDiffuseL1Geomerics_local(lumaL0, float3(lumaL1x, lumaL1y, lumaL1z), normalWorld);
+
+    sh = L0 + normalWorld.x * L1x + normalWorld.y * L1y + normalWorld.z * L1z;
+    float regularLumaSH = dot(sh, 1);
+
+    sh *= lerp(1, lumaSH / regularLumaSH, saturate(regularLumaSH*16));
+#else
+    sh = L0 + normalWorld.x * L1x + normalWorld.y * L1y + normalWorld.z * L1z;
+#endif
+
+    #if defined(LIGHTMAP_SPECULAR)
+    dominantDir = nL1;
+
+    o_light.l = dominantDir;
+    half directionality = max(0.001, length(o_light.l));
+    o_light.l /= directionality;
+
+    // Split light into the directional and ambient parts, according to the directionality factor.
+    o_light.colorIntensity = float4(L0 * directionality, 1.0);
+    o_light.attenuation = directionality;
+    o_light.NoL = saturate(dot(normalWorld, o_light.l));
+    #endif
+
+    return L0;
+}
+#endif
+
 float IrradianceToExposureOcclusion(float3 irradiance)
 {
     return saturate(length(irradiance + FLT_EPS) * getExposureOcclusionBias());
@@ -481,16 +527,28 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
 
         #ifdef DIRLIGHTMAP_COMBINED
             fixed4 bakedDirTex = SampleLightmapDirBicubic (shading.lightmapUV.xy);
-            irradiance += DecodeDirectionalLightmap (bakedColor, bakedDirTex, shading.normal);
 
-            irradianceForAO = irradiance;
+            // Bakery's MonoSH mode replaces the regular directional lightmap
+            #if defined(_BAKERY_MONOSH)
+                irradiance = DecodeMonoSHLightmap (bakedColor, shading.lightmapUV.xy, shading.normal, derivedLight);
 
-            #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
-                irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, shading.normal);
-            #endif
+                irradianceForAO = irradiance;
 
-            #if defined(LIGHTMAP_SPECULAR) 
-                irradiance = DecodeDirectionalLightmapSpecular(bakedColor, bakedDirTex, shading.normal, false, 0, derivedLight);
+                #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
+                    irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, shading.normal);
+                #endif
+            #else
+                irradiance = DecodeDirectionalLightmap (bakedColor, bakedDirTex, shading.normal);
+
+                irradianceForAO = irradiance;
+
+                #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
+                    irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, shading.normal);
+                #endif
+
+                #if defined(LIGHTMAP_SPECULAR) 
+                    irradiance = DecodeDirectionalLightmapSpecular(bakedColor, bakedDirTex, shading.normal, false, 0, derivedLight);
+                #endif
             #endif
 
         #else // not directional lightmap

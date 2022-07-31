@@ -106,6 +106,10 @@ UNITY_DECLARE_TEX2D_HALF(_RNM1);
 UNITY_DECLARE_TEX2D_HALF(_RNM2);
 #endif
 
+// For MonoSH, the extra textures aren't used. 
+#if defined(_BAKERY_MONOSH)
+#endif
+
 // Refraction source texture
 #if REFRACTION_MODE == REFRACTION_MODE_SCREEN
     #ifndef REFRACTION_SOURCE
