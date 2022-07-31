@@ -495,7 +495,7 @@ float3 DecodeMonoSHLightmap(half3 L0, half2 lightmapUV, half3 normalWorld, out L
     o_light.NoL = saturate(dot(normalWorld, o_light.l));
     #endif
 
-    return L0;
+    return sh;
 }
 #endif
 
