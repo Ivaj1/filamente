@@ -58,7 +58,7 @@ Shader "Silent/Filamented (Roughness setup)"
         [Toggle(_LTCGI)] _LTCGI ("LTCGI", Int) = 0
 
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
-        _AlphaToMask("Alpha to Mask", Int) = 0
+        [ToggleUI]_AlphaToMaskMode("Alpha to Coverage", Int) = 0
 
         [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
 
@@ -95,6 +95,7 @@ Shader "Silent/Filamented (Roughness setup)"
 
             Blend [_SrcBlend] [_DstBlend]
             ZWrite [_ZWrite]
+            AlphaToMask [_AlphaToMaskMode]
 
             CGPROGRAM
             #pragma target 4.0
@@ -139,6 +140,7 @@ Shader "Silent/Filamented (Roughness setup)"
             Fog { Color (0,0,0,0) } // in additive pass fog should be black
             ZWrite Off
             ZTest LEqual
+            AlphaToMask [_AlphaToMaskMode]
 
             CGPROGRAM
             #pragma target 4.0

@@ -74,6 +74,10 @@
 #define BLEND_MODE_MASKED 
 #endif
 
+#ifndef NEEDS_ALPHA_CHANNEL
+#define NEEDS_ALPHA_CHANNEL 0
+#endif
+
 // By default, Standard assumes meshes have normals
 #define HAS_ATTRIBUTE_TANGENTS
 
