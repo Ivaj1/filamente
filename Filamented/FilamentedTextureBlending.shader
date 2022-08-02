@@ -7,16 +7,11 @@ Shader "Silent/Filamented Extras/Filamented Texture Blending"
 {
     Properties
     {
-        [Header(Base Texture Settings)]
-        [Toggle(_TRIPLANAR)]_UseTriplanar("Use Triplanar Sampling", Float) = 0.0
-        _UVTransform0("Triplanar UV Transform X", Vector) = (1, 0, 0, 0)
-        _UVTransform1("Triplanar UV Transform Y", Vector) = (0, 1, 0, 0)
-        _UVTransform2("Triplanar UV Transform Z", Vector) = (0, 0, 1, 0)
-
-        [Space]
-        _BlendMask ("Texture Blending Offset (R)", 2D) = "grey" {}
-        _MaskStr("Blending Mask Power (per-channel)", Vector) = (1.0, 1.0, 1.0, 1.0)
-        _BlendSharp ("Blending Softness (per-channel)", Vector) = (1.0, 1.0, 1.0, 1.0)
+        [Header(Base Color)]
+        _MainTexA ("Albedo (RGB)", 2D) = "white" {}
+        [NoScaleOffset][Normal]_BumpMapA ("Normal Map (XYZ)", 2D) = "bump" {}
+        [NoScaleOffset]_MaskMapA ("Mask (MOES)", 2D) = "green" {}
+        _PropertiesA("MOES Scale", Vector) = (0.0, 0.0, 0.0, 1.0)
 
         [Header(Vertex Color R)]
         _MainTexR ("Albedo (RGB)", 2D) = "white" {}
@@ -36,11 +31,16 @@ Shader "Silent/Filamented Extras/Filamented Texture Blending"
         [NoScaleOffset]_MaskMapB ("Mask (MOES)", 2D) = "green" {}
         _PropertiesB("MOES Scale", Vector) = (0.0, 0.0, 0.0, 1.0)
 
-        [Header(Vertex Color A)]
-        _MainTexA ("Albedo (RGB)", 2D) = "white" {}
-        [NoScaleOffset][Normal]_BumpMapA ("Normal Map (XYZ)", 2D) = "bump" {}
-        [NoScaleOffset]_MaskMapA ("Mask (MOES)", 2D) = "green" {}
-        _PropertiesA("MOES Scale", Vector) = (0.0, 0.0, 0.0, 1.0)
+        [Header(Texture Blending Settings)]
+        _BlendMask ("Texture Blending Offset (R)", 2D) = "grey" {}
+        _MaskStr("Blending Mask Power (per-channel)", Vector) = (1.0, 1.0, 1.0, 1.0)
+        [Toggle(_DEBUG_VIEWWEIGHTS)]_DebugViewBlendingWeights("Debug View for Blend Weights", Float ) = 0.0
+
+        [Space]
+        [Toggle(_TRIPLANAR)]_UseTriplanar("Use Triplanar Sampling", Float) = 0.0
+        _UVTransform0("Triplanar UV Transform X", Vector) = (1, 0, 0, 0)
+        _UVTransform1("Triplanar UV Transform Y", Vector) = (0, 1, 0, 0)
+        _UVTransform2("Triplanar UV Transform Z", Vector) = (0, 0, 1, 0)
 
         [Header(Blend Source Settings)]
         [Toggle(_SPLATMAP)]_UseSplatMap("Use Splat Map", Float) = 0
@@ -50,6 +50,7 @@ Shader "Silent/Filamented Extras/Filamented Texture Blending"
         [Toggle(_LIGHTMAPSPECULAR)]_LightmapSpecular("Lightmap Specular", Range(0, 1)) = 1
         _LightmapSpecularMaxSmoothness("Lightmap Specular Max Smoothness", Range(0, 1)) = 1
         _ExposureOcclusion("Lightmap Occlusion Sensitivity", Range(0, 1)) = 0.2
+
         [Space]
         [KeywordEnum(None, SH, RNM, MonoSH)] _Bakery ("Bakery Mode", Int) = 0
         [HideInInspector]_RNM0("RNM0", 2D) = "black" {}
@@ -130,7 +131,6 @@ Shader "Silent/Filamented Extras/Filamented Texture Blending"
 
     TEXTURE2D(_BlendMask); SAMPLER(sampler_BlendMask);
     float4 _BlendMask_ST;
-    float4 _BlendSharp;
     float4 _MaskStr;
 
 	// Vertex functions are called from UnityStandardCore.
@@ -138,53 +138,9 @@ Shader "Silent/Filamented Extras/Filamented Texture Blending"
 	VertexOutputForwardBase vertBase (VertexInput v) { return vertForwardBase(v); }
 	VertexOutputForwardAdd vertAdd (VertexInput v) { return vertForwardAdd(v); }
 
-
-// https://iquilezles.org/www/articles/biplanar/biplanar.htm
-// "p" point being textured
-// "n" surface normal at "p"
-// "k" controls the sharpness of the blending in the transitions areas
-// "s" texture sampler
-float4 biplanar( TEXTURE2D_PARAM(tex, smp), float3 p, float3 n, float k )
-{
-    // grab coord derivatives for texturing
-    float3 dpdx = ddx(p);
-    float3 dpdy = ddy(p);
-    n = abs(n);
-
-    // determine major axis (in x; yz are following axis)
-    int3 ma =  (n.x>n.y && n.x>n.z) ? int3(0,1,2) :
-               (n.y>n.z)            ? int3(1,0,2) :
-                                      int3(2,1,0) ;
-    // determine minor axis (in x; yz are following axis)
-    int3 mi =  (n.x<n.y && n.x<n.z) ? int3(0,1,2) :
-               (n.y<n.z)            ? int3(1,0,2) :
-                                      int3(2,1,0) ;
-    // determine median axis (in x;  yz are following axis)
-    int3 me = clamp(3 - mi - ma, 0, 2); 
-    
-    // project+fetch
-    float4 x = SAMPLE_TEXTURE2D_GRAD( tex, smp, 
-        float2(   p[ma.y],   p[ma.z]).yx, 
-        float2(dpdx[ma.y],dpdx[ma.z]).yx, 
-        float2(dpdy[ma.y],dpdy[ma.z]).yx );
-    float4 y = SAMPLE_TEXTURE2D_GRAD( tex, smp, 
-        float2(   p[me.y],   p[me.z]).yx, 
-        float2(dpdx[me.y],dpdx[me.z]).yx,         
-        float2(dpdy[me.y],dpdy[me.z]).yx );
-    
-    // blend factors
-    float2 w = float2(n[ma.x],n[me.x]);
-    // make local support
-    w = clamp( (w-0.5773)/(1.0-0.5773), 0.0, 1.0 );
-    // shape transition
-    w = pow( w, k/8.0 );
-    // blend and return
-    return (x*w.x + y*w.y) / (w.x + w.y);
-}
-
 // Typical triplanar mapping -- has less visual artifacts than biplanar.
 // Artifacts stand out because this is a material shader for things like
-// terrain which cover a large portion of the screen, so biplanar is unused.
+// terrain which cover a large portion of the screen.
 float4 boxmap( TEXTURE2D_PARAM(tex, smp), float3 p, float3 n, float k )
 {
     // grab coord derivatives for texturing
@@ -205,58 +161,65 @@ float4 boxmap( TEXTURE2D_PARAM(tex, smp), float3 p, float3 n, float k )
     return (x*m.x + y*m.y + z*m.z) / (m.x + m.y + m.z);
 }
 
+float3 RNMBlendUnpacked(float3 n1, float3 n2)
+{
+    n1 += float3( 0,  0, 1);
+    n2 *= float3(-1, -1, 1);
+    return n1*dot(n1, n2)/n1.z - n2;
+}
+
 void addLayer(float weight, float2 uv, float4 uv_ST,
     TEXTURE2D_PARAM(tex_A, smp_A), inout float4 albedoAlpha, 
     TEXTURE2D_PARAM(tex_N, smp_N), inout float3 normal, 
-    TEXTURE2D_PARAM(tex_M, smp_M), inout float4 mask,
+    TEXTURE2D_PARAM(tex_M, smp_M), inout float4 props,
     inout float4 maskProps)
 {
     if (weight > 0)  
     {
         uv = uv * uv_ST.xy + uv_ST.zw;
-        albedoAlpha += weight * SAMPLE_TEXTURE2D(tex_A, smp_A, uv);
-        normal += weight * UnpackScaleNormal(SAMPLE_TEXTURE2D(tex_N, smp_N, uv), 1.0);
-        float4 layerMask = SAMPLE_TEXTURE2D(tex_M, smp_M, uv);
-        layerMask.rba *= maskProps.rba; // metallic, emission, smoothness
-        layerMask.g = lerp(1, layerMask.g, maskProps.g); // occlusion
-        mask += weight * layerMask;
+        float4 thisBasemap = SAMPLE_TEXTURE2D(tex_A, smp_A, uv);
+        float3 thisNormal = UnpackScaleNormal(SAMPLE_TEXTURE2D(tex_N, smp_N, uv), weight);
+        float4 thisProps = SAMPLE_TEXTURE2D(tex_M, smp_M, uv);
+        thisProps.rba *= maskProps.rba; // metallic, emission, smoothness
+        thisProps.g = lerp(1, thisProps.g, maskProps.g); // occlusion
+
+        #if 0
+        albedoAlpha = albedoAlpha + thisBasemap * weight;
+        normal = RNMBlendUnpacked(thisNormal, normal);
+        props = props + thisProps * weight;
+        #else
+        albedoAlpha = lerp(albedoAlpha, thisBasemap, weight);
+        normal = RNMBlendUnpacked(thisNormal, normal);
+        props = lerp(props, thisProps, weight);
+        #endif
     }
 }
 
-void addLayerBiplanar(float weight, float3 p, float3 n, float4 uv_ST,
-    TEXTURE2D_PARAM(tex_A, smp_A), inout float4 albedoAlpha, 
-    TEXTURE2D_PARAM(tex_N, smp_N), inout float3 normal, 
-    TEXTURE2D_PARAM(tex_M, smp_M), inout float4 mask,
-    inout float4 maskProps)
-{
-    const float tightness = 1.0;
-    if (weight > 0)
-    {
-        p = p * uv_ST.xyx + uv_ST.zwz;
-        albedoAlpha += weight * biplanar(TEXTURE2D_ARGS(tex_A, smp_A), p, n, tightness);
-        normal += weight * UnpackScaleNormal(biplanar(TEXTURE2D_ARGS(tex_N, smp_N), p, n, tightness), 1.0);
-        float4 layerMask = biplanar(TEXTURE2D_ARGS(tex_M, smp_M), p, n, tightness);
-        layerMask.rba *= maskProps.rba; // metallic, emission, smoothness
-        layerMask.g = lerp(1, layerMask.g, maskProps.g); // occlusion
-        mask += weight * layerMask;
-    }
-}
 void addLayerTriplanar(float weight, float3 p, float3 n, float4 uv_ST,
     TEXTURE2D_PARAM(tex_A, smp_A), inout float4 albedoAlpha, 
     TEXTURE2D_PARAM(tex_N, smp_N), inout float3 normal, 
-    TEXTURE2D_PARAM(tex_M, smp_M), inout float4 mask,
+    TEXTURE2D_PARAM(tex_M, smp_M), inout float4 props,
     inout float4 maskProps)
 {
     const float tightness = 6.0;
     if (weight > 0)
     {
         p = p * uv_ST.xyx + uv_ST.zwz;
-        albedoAlpha += weight * boxmap(TEXTURE2D_ARGS(tex_A, smp_A), p, n, tightness);
-        normal += weight * UnpackScaleNormal(boxmap(TEXTURE2D_ARGS(tex_N, smp_N), p, n, tightness), 1.0);
-        float4 layerMask = boxmap(TEXTURE2D_ARGS(tex_M, smp_M), p, n, tightness);
-        layerMask.rba *= maskProps.rba; // metallic, emission, smoothness
-        layerMask.g = lerp(1, layerMask.g, maskProps.g); // occlusion
-        mask += weight * layerMask;
+        float4 thisBasemap = boxmap(TEXTURE2D_ARGS(tex_A, smp_A), p, n, tightness);
+        float3 thisNormal = UnpackScaleNormal(boxmap(TEXTURE2D_ARGS(tex_N, smp_N), p, n, tightness), weight);
+        float4 thisProps = boxmap(TEXTURE2D_ARGS(tex_M, smp_M), p, n, tightness);
+        thisProps.rba *= maskProps.rba; // metallic, emission, smoothness
+        thisProps.g = lerp(1, thisProps.g, maskProps.g); // occlusion
+
+        #if 0
+        albedoAlpha = albedoAlpha + thisBasemap * weight;
+        normal = RNMBlendUnpacked(thisNormal, normal);
+        props = props + thisProps * weight;
+        #else
+        albedoAlpha = lerp(albedoAlpha, thisBasemap, weight);
+        normal = RNMBlendUnpacked(thisNormal, normal);
+        props = lerp(props, thisProps, weight);
+        #endif
     }
 }
 
@@ -287,22 +250,27 @@ inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float3 i_eyeVec,
         i_tex.xy * _BlendMask_ST.xy + _BlendMask_ST.zw).r;
 #endif
 
-    blendMod = (0.5 * blendMod - 0.5) * _MaskStr;
+    weights = saturate( pow(((blendMod*weights)*4) + (weights*2), _MaskStr) );
 
-    float4 sharpPow = saturate(_BlendSharp+0.01) * 0.5;
-    weights = smoothstep(0.5-sharpPow, 0.5+sharpPow, weights+blendMod);
-    
-    weights = max(weights, 0);
-    weights /= dot(weights, 1.0);
-
-    weights = max(weights, 0);
-    weights.r += 1-saturate(dot(weights, 1.0));
+#if defined(_DEBUG_VIEWWEIGHTS)
+    MaterialInputs debugView = (MaterialInputs)0;
+    initMaterial(debugView);
+    debugView.baseColor = 0.0;
+    debugView.emissive = weights;
+    debugView.emissive.a = 1.0;
+    return debugView;
+#endif
 
     float4 c = 0;
-    float3 n = 0;
+    float3 n = float3(0.0, 0.0, 1.0);
     float4 m = 0;
 
 #if defined(_TRIPLANAR)
+    addLayerTriplanar(1.0, worldPosT, worldNormalT, _MainTexA_ST, 
+        TEXTURE2D_ARGS(_MainTexA, sampler_MainTexR), c, 
+        TEXTURE2D_ARGS(_BumpMapA, sampler_BumpMapR), n, 
+        TEXTURE2D_ARGS(_MaskMapA, sampler_MaskMapR), m, 
+        _PropertiesA); 
     addLayerTriplanar(weights.r, worldPosT, worldNormalT, _MainTexR_ST, 
         TEXTURE2D_ARGS(_MainTexR, sampler_MainTexR), c, 
         TEXTURE2D_ARGS(_BumpMapR, sampler_BumpMapR), n, 
@@ -318,12 +286,12 @@ inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float3 i_eyeVec,
         TEXTURE2D_ARGS(_BumpMapB, sampler_BumpMapR), n, 
         TEXTURE2D_ARGS(_MaskMapB, sampler_MaskMapR), m, 
         _PropertiesB);
-    addLayerTriplanar(weights.a, worldPosT, worldNormalT, _MainTexA_ST, 
+#else
+    addLayer(1.0, i_tex.xy, _MainTexA_ST, 
         TEXTURE2D_ARGS(_MainTexA, sampler_MainTexR), c, 
         TEXTURE2D_ARGS(_BumpMapA, sampler_BumpMapR), n, 
         TEXTURE2D_ARGS(_MaskMapA, sampler_MaskMapR), m, 
-        _PropertiesA); 
-#else
+        _PropertiesA);
     addLayer(weights.r, i_tex.xy, _MainTexR_ST, 
         TEXTURE2D_ARGS(_MainTexR, sampler_MainTexR), c, 
         TEXTURE2D_ARGS(_BumpMapR, sampler_BumpMapR), n, 
@@ -339,11 +307,6 @@ inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float3 i_eyeVec,
         TEXTURE2D_ARGS(_BumpMapB, sampler_BumpMapR), n, 
         TEXTURE2D_ARGS(_MaskMapB, sampler_MaskMapR), m, 
         _PropertiesB);
-    addLayer(weights.a, i_tex.xy, _MainTexA_ST, 
-        TEXTURE2D_ARGS(_MainTexA, sampler_MainTexR), c, 
-        TEXTURE2D_ARGS(_BumpMapA, sampler_BumpMapR), n, 
-        TEXTURE2D_ARGS(_MaskMapA, sampler_MaskMapR), m, 
-        _PropertiesA);
 #endif
 
     half metallic = m.x;
@@ -465,6 +428,7 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             #pragma shader_feature_local _LTCGI
             #pragma shader_feature_local _SPLATMAP
             #pragma shader_feature_local _TRIPLANAR
+            #pragma shader_feature_local _DEBUG_VIEWWEIGHTS
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
@@ -542,13 +506,50 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
 
             ENDCG
         }
-        
 
-        // Deferred not implemented
-        UsePass "Standard/DEFERRED"
+        Pass
+        {
+            Name "META"
+            Tags {"LightMode"="Meta"}
+            Cull Off
+            CGPROGRAM
 
-        // Meta not implemented
-        UsePass "Standard/META"
+            #include "UnityStandardMeta.cginc"
+
+            #define META_PASS
+
+            float4 frag_meta2 (v2f_meta i): SV_Target
+            {
+                MaterialInputs material = SETUP_BRDF_INPUT (i.uv);
+                float4 dummy[3]; dummy[0] = 0; dummy[1] = 0; dummy[2] = 0;
+                material = BlendedMaterialSetup(i.uv, 0, 0, dummy, 0, i.color);
+                
+                PixelParams pixel = (PixelParams)0;
+                getCommonPixelParams(material, pixel);
+
+                UnityMetaInput o;
+                UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
+
+            #ifdef EDITOR_VISUALIZATION
+                o.Albedo = pixel.diffuseColor;
+                o.VizUV = i.vizUV;
+                o.LightCoord = i.lightCoord;
+            #else
+                o.Albedo = UnityLightmappingAlbedo (pixel.diffuseColor, pixel.f0, 1-pixel.perceptualRoughness);
+            #endif
+                o.SpecularColor = pixel.f0;
+                o.Emission = material.emissive;
+
+                return UnityMetaFragment(o);
+            }
+
+            #pragma vertex vert_meta
+            #pragma fragment frag_meta2
+            #pragma shader_feature _EMISSION
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature ___ _DETAIL_MULX2
+            ENDCG
+        }
 
     }
 
