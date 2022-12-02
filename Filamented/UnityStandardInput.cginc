@@ -73,6 +73,8 @@ half       _specularAntiAliasingVariance;
 half       _specularAntiAliasingThreshold;
 #endif
 
+half       _CullMode;
+
 //-------------------------------------------------------------------------------------
 // Input functions
 
@@ -387,6 +389,11 @@ float NormalTangentShadow(float4 texcoords, half3 lightDirTS, float noise)
 half getMaskThreshold()
 {
     return _Cutoff;
+}
+
+bool getIsDoubleSided()
+{
+    return _CullMode == 2;
 }
 
 half getExposureOcclusionBias()
