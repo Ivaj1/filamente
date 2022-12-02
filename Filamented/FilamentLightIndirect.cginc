@@ -125,8 +125,9 @@ float3 Irradiance_SphericalHarmonics(const float3 n, const bool useL2) {
         #endif
 
         #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_GEOMETRICS)
-            float3 L0 = float3(unity_SHAr.w, unity_SHAg.w, unity_SHAb.w)
-            + float3(unity_SHBr.z, unity_SHBg.z, unity_SHBb.z) / 3.0;
+            float3 L0 = float3(unity_SHAr.w, unity_SHAg.w, unity_SHAb.w);
+            float3 L0L2 = float3(unity_SHBr.z, unity_SHBg.z, unity_SHBb.z) / 3.0;
+            L0 = (useL2) ? L0+L0L2 : L0-L0L2;
             finalSH.r = shEvaluateDiffuseL1Geomerics_local(L0.r, unity_SHAr.xyz, n);
             finalSH.g = shEvaluateDiffuseL1Geomerics_local(L0.g, unity_SHAg.xyz, n);
             finalSH.b = shEvaluateDiffuseL1Geomerics_local(L0.b, unity_SHAb.xyz, n);
