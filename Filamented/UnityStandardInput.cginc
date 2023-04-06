@@ -393,7 +393,7 @@ half getMaskThreshold()
 
 bool getIsDoubleSided()
 {
-    return _CullMode == 2;
+    return _CullMode == 0;
 }
 
 half getExposureOcclusionBias()
