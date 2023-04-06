@@ -40,4 +40,36 @@ float2 ParallaxRaymarching(float2 viewDir, PerPixelHeightDisplacementParam ppdPa
     return uvOffset;
 }
 
+float2 ParallaxRaymarchingDynamic(float3 viewDir, PerPixelHeightDisplacementParam ppdParam, 
+    float strength, float lod)
+{
+    viewDir = normalize(viewDir);
+    const float minLayers = 8.0;
+    const float maxLayers = 48.0;
+    // lod should be dot(normalWS, viewDirWS)
+    float numLayers = lerp(maxLayers, minLayers, lod);
+    float heightScale = _Parallax; // 0.05
+    float layerDepth = 1.0 / numLayers;
+    float currLayerDepth = 0.0;
+    float2 deltaUV = viewDir.xy * heightScale / (viewDir.z * numLayers);
+    float2 uvOffset = 0;
+    float height = 1.0 - ComputePerPixelHeightDisplacement(0, 0, ppdParam);
+
+    for (int i = 0; i < numLayers; i++) {
+        currLayerDepth += layerDepth;
+        uvOffset -= deltaUV;
+        height = 1.0 - ComputePerPixelHeightDisplacement(uvOffset, 0, ppdParam);
+        if (height < currLayerDepth) {
+            break;
+        }
+    }
+    float2 prevOffset = uvOffset + deltaUV;
+    float nextDepth = height - currLayerDepth;
+    float prevDepth = 1.0 - ComputePerPixelHeightDisplacement(prevOffset, 0, ppdParam) -
+            currLayerDepth + layerDepth;
+    float2 parallaxUVs = lerp(uvOffset, prevOffset, nextDepth / (nextDepth - prevDepth));
+    return parallaxUVs;
+    
+}
+
 #endif // SERVICE_PARALLAX_INCLUDED

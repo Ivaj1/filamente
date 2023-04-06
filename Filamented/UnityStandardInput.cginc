@@ -15,8 +15,9 @@
 #define PARALLAX_NONE                 0
 #define PARALLAX_ONESTEP              1
 #define PARALLAX_RAYMARCH             2
+#define PARALLAX_RAYMARCH_DYNAMIC     3
 
-#define PARALLAX_OPERATOR             PARALLAX_RAYMARCH
+#define PARALLAX_OPERATOR             PARALLAX_RAYMARCH_DYNAMIC
 
 //---------------------------------------
 // Directional lightmaps & Parallax require tangent space too
@@ -318,7 +319,7 @@ float ComputePerPixelHeightDisplacement(float2 offset, float lod, PerPixelHeight
 
 #include "SharedParallaxLib.hlsl"
 
-float4 Parallax (float4 texcoords, half3 viewDir)
+float4 Parallax (float4 texcoords, half3 viewDir, half lod = 0)
 {
 #if !defined(_PARALLAXMAP) || (SHADER_TARGET < 30) || (PARALLAX_OPERATOR == PARALLAX_NONE)
     // Disable parallax on pre-SM3.0 shader target models
@@ -335,6 +336,11 @@ float4 Parallax (float4 texcoords, half3 viewDir)
     viewDir = normalize(viewDir);
     viewDir.xy /= (viewDir.z + 0.42); 
     float2 offset = ParallaxRaymarching(viewDir, ppd, _Parallax, /* out */ height);
+    return float4(texcoords.xy + offset, texcoords.zw + offset);
+#endif
+#if (PARALLAX_OPERATOR == PARALLAX_RAYMARCH_DYNAMIC)
+    PerPixelHeightDisplacementParam ppd = InitPerPixelHeightDisplacementParam(texcoords.xy);
+    float2 offset = ParallaxRaymarchingDynamic(viewDir, ppd, _Parallax, lod);
     return float4(texcoords.xy + offset, texcoords.zw + offset);
 #endif
 #endif
