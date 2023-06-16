@@ -1060,25 +1060,21 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 
     // Gather LTCGI data, if present.
 #if defined(_LTCGI)
-    float3 ltcDiffuse = 0;
-    float3 ltcSpecular = 0;
-    float ltcSpecularIntensity = 0;
+    accumulator_struct acc = (accumulator_struct)0;
 
     LTCGI_Contribution(
+        acc,
         shading.position, 
         shading.normal, 
         shading.view, 
         pixel.perceptualRoughness, 
-        (shading.lightmapUV.xy - unity_LightmapST.zw) / unity_LightmapST.xy,
-        /* out */ ltcDiffuse,
-        /* out */ ltcSpecular,
-        /* out */ ltcSpecularIntensity
+        (shading.lightmapUV.xy - unity_LightmapST.zw) / unity_LightmapST.xy
     );
 
 #endif
 
 #if defined(_LTCGI)
-    Fr = lerp(Fr, E * ltcSpecular, saturate(ltcSpecularIntensity));
+    Fr = lerp(Fr, E * acc.specular, saturate(acc.specularIntensity));
 #endif
 
     Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
@@ -1102,7 +1098,7 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 #endif
 
 #if defined(_LTCGI)
-    diffuseIrradiance += ltcDiffuse;
+    diffuseIrradiance += acc.diffuse;
 #endif
 
     float3 Fd = pixel.diffuseColor * diffuseIrradiance * (1.0 - E) * diffuseBRDF;

@@ -5,7 +5,29 @@
     #if defined(_SPECULARHIGHLIGHTS_OFF)
         #define LTCGI_SPECULAR_OFF
     #endif
-#include "Assets/_pi_/_LTCGI/Shaders/LTCGI.cginc"
+#include "Packages/at.pimaker.ltcgi/Shaders/LTCGI_structs.cginc"
+
+struct accumulator_struct {
+    float3 diffuse;
+    float3 specular;
+    float3 specularIntensity;
+};
+void callback_diffuse(inout accumulator_struct acc, in ltcgi_output output);
+void callback_specular(inout accumulator_struct acc, in ltcgi_output output);
+
+#define LTCGI_V2_CUSTOM_INPUT accumulator_struct
+#define LTCGI_V2_DIFFUSE_CALLBACK callback_diffuse
+#define LTCGI_V2_SPECULAR_CALLBACK callback_specular
+
+#include "Packages/at.pimaker.ltcgi/Shaders/LTCGI.cginc"
+
+void callback_diffuse(inout accumulator_struct acc, in ltcgi_output output) {
+    acc.diffuse += output.intensity * output.color;
+}
+void callback_specular(inout accumulator_struct acc, in ltcgi_output output) {
+    acc.specular += output.intensity * output.color;
+    acc.specularIntensity += output.intensity;
+}
 #endif
 
 //------------------------------------------------------------------------------
@@ -16,19 +38,17 @@
 
 void evaluateLTCGI(const ShadingParams shading, const PixelParams pixel, inout float3 color) {
 #if defined(_LTCGI)
-    float3 diffuse = 0;
-    float3 specular = 0;
+    accumulator_struct acc = (accumulator_struct)0;
 
     LTCGI_Contribution(
-        shading.position, 
-        shading.normal, 
-        shading.view, 
-        pixel.perceptualRoughness, 
-        shading.lightmapUV.xy, 
-        /* out */ diffuse,
-        /* out */ specular
+        acc,
+        shading.position,
+        shading.normal,
+        shading.view,
+        pixel.perceptualRoughness,
+        shading.lightmapUV.xy
     );
-    color.rgb += specular + diffuse;
+    color.rgb += acc.specular + acc.diffuse;
 #endif
 }
 
