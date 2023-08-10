@@ -79,10 +79,10 @@ Shader "Silent/Filamented Template"
     #ifndef UNITY_PASS_SHADOWCASTER
 
     // Include common files. These will include the other files as needed.
-	#include "UnityLightingCommon.cginc"
-	#include "UnityStandardInput.cginc"
-	#include "UnityStandardConfig.cginc"
-	#include "UnityStandardCore.cginc"
+    #include "Packages/s-ilent.filamented/Filamented/UnityLightingCommon.cginc"
+    #include "Packages/s-ilent.filamented/Filamented/UnityStandardInput.cginc"
+    #include "Packages/s-ilent.filamented/Filamented/UnityStandardConfig.cginc"
+    #include "Packages/s-ilent.filamented/Filamented/UnityStandardCore.cginc"
 	// Note: Unfortunately, Input is still needed due to some interdependancies with other Unity files.
 	// This means that some properties will always be defined, even if they aren't used. 
 	// In practise, this won't affect the final compilation, but it means you'll need to watch out for the names
