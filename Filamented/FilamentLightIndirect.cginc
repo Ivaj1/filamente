@@ -250,7 +250,7 @@ float4 UnityLightmap_ColorIntensitySeperated(float3 lightmap) {
 
 float4 SampleLightmapBicubic(float2 uv)
 {
-    #ifdef SHADER_API_D3D11
+    #if defined(SHADER_API_D3D11)
         float width, height;
         unity_Lightmap.GetDimensions(width, height);
 
@@ -265,7 +265,8 @@ float4 SampleLightmapBicubic(float2 uv)
 
 float4 SampleLightmapDirBicubic(float2 uv)
 {
-    #ifdef SHADER_API_D3D11
+    // We don't need to sample the directionality with bicubic filtering
+    #if defined(SHADER_API_D3D11) && false
         float width, height;
         unity_LightmapInd.GetDimensions(width, height);
 
@@ -280,7 +281,7 @@ float4 SampleLightmapDirBicubic(float2 uv)
 
 float4 SampleDynamicLightmapBicubic(float2 uv)
 {
-    #ifdef SHADER_API_D3D11
+    #if defined(SHADER_API_D3D11)
         float width, height;
         unity_DynamicLightmap.GetDimensions(width, height);
 
@@ -295,7 +296,8 @@ float4 SampleDynamicLightmapBicubic(float2 uv)
 
 float4 SampleDynamicLightmapDirBicubic(float2 uv)
 {
-    #ifdef SHADER_API_D3D11
+    // We don't need to sample the directionality with bicubic filtering
+    #if defined(SHADER_API_D3D11) && false
         float width, height;
         unity_DynamicDirectionality.GetDimensions(width, height);
 
@@ -352,7 +354,7 @@ float3 DecodeRNMLightmap(half3 color, half2 lightmapUV, half3 normalTangent, flo
     float3 irradiance;
     o_light = (Light)0;
 
-    #ifdef SHADER_API_D3D11
+    #if defined(SHADER_API_D3D11)
         float width, height;
         _RNM0.GetDimensions(width, height);
 
@@ -401,7 +403,7 @@ float3 DecodeSHLightmap(half3 L0, half2 lightmapUV, half3 normalWorld, out Light
     float3 irradiance;
     o_light = (Light)0;
 
-    #ifdef SHADER_API_D3D11
+    #if defined(SHADER_API_D3D11)
         float width, height;
         _RNM0.GetDimensions(width, height);
 
