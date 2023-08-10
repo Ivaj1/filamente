@@ -1060,6 +1060,8 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     Fr = isEvaluateSpecularIBL(pixel, shading.normal, shading.view, shading.NoV);
 #endif
 
+    Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
+
     // Gather LTCGI data, if present.
 #if defined(_LTCGI)
     accumulator_struct acc = (accumulator_struct)0;
@@ -1073,13 +1075,14 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
         (shading.lightmapUV.xy - unity_LightmapST.zw) / unity_LightmapST.xy
     );
 
-#endif
+    // Apply specular AO seperately for LTCGI pass, as it is a seperate set of lights. 
+    float ltc_specularAO = computeSpecularAO(shading.NoV, diffuseAO, pixel.roughness);
+    float3 ltc_Fr =  E * acc.specular;
 
-#if defined(_LTCGI)
-    Fr = lerp(Fr, E * acc.specular, saturate(acc.specularIntensity));
-#endif
+    ltc_Fr *= singleBounceAO(ltc_specularAO) * pixel.energyCompensation;
 
-    Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
+    Fr = lerp(Fr, ltc_Fr, saturate(acc.specularIntensity));
+#endif
 
     // diffuse layer
     float diffuseBRDF = singleBounceAO(diffuseAO); // Fd_Lambert() is baked in the SH below
