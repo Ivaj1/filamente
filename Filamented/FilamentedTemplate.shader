@@ -34,6 +34,7 @@ Shader "Silent/Filamented Template"
         [Toggle(_LTCGI)] _LTCGI ("LTCGI", Int) = 0
         [Space]
         [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
+        [Toggle(_ALPHATEST_ON)]_AtoCmode("Cutout Transparency", Float) = 0
 
         [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
     }
@@ -213,6 +214,7 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             Tags { "LightMode" = "ForwardBase" }
 
             Cull [_CullMode]
+            AlphaToMask [_AtoCmode]
 
             CGPROGRAM
             #pragma target 4.0
@@ -248,6 +250,7 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             ZWrite Off
             ZTest Equal
             Cull [_CullMode]
+            AlphaToMask [_AtoCmode]
 
             CGPROGRAM
             #pragma target 3.0
