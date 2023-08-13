@@ -23,6 +23,9 @@ struct v2f_meta
 #ifdef HAS_ATTRIBUTE_COLOR
     float4 color        : COLOR_Centroid;
 #endif
+#ifdef REQUIRE_META_WORLDPOS
+    float4 worldPos     : TEXCOORD3;
+#endif
 };
 
 v2f_meta vert_meta (VertexInput v)
@@ -43,6 +46,11 @@ v2f_meta vert_meta (VertexInput v)
 #endif
 #ifdef HAS_ATTRIBUTE_COLOR
     o.color = v.color;
+#endif
+#ifdef REQUIRE_META_WORLDPOS
+    float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+    float3 worldNormal = UnityObjectToWorldNormal(v.normal); 
+    o.worldPos.xyz = worldPos;
 #endif
     return o;
 }

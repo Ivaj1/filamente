@@ -224,8 +224,8 @@ void addLayerTriplanar(float weight, float3 p, float3 n, float4 uv_ST,
 }
 
 	// The material function itself!  You can alter the code below to add extra properties. 
-inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float3 i_eyeVec, 
-    half3 i_viewDirForParallax, float4 tangentToWorld[3], float3 i_posWorld, float4 i_color)
+inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float4 tangentToWorld[3],
+ float3 i_posWorld, float4 i_color)
 {   
     // Blend weights in vertex colours
     fixed4 weights = i_color;
@@ -345,8 +345,7 @@ half4 fragForwardBaseTemplate (VertexOutputForwardBase i)
 
     // Your material setup goes here.
     MaterialInputs material =
-    BlendedMaterialSetup(i.tex, i.eyeVec.xyz, IN_VIEWDIR4PARALLAX(i), i.tangentToWorldAndPackedData, 
-        IN_WORLDPOS(i), i.color);
+    BlendedMaterialSetup(i.tex, i.tangentToWorldAndPackedData, IN_WORLDPOS(i), i.color);
 
     prepareMaterial(shading, material);
 
@@ -377,8 +376,7 @@ half4 fragForwardAddTemplate (VertexOutputForwardAdd i)
 
     // Your material setup goes here.
     MaterialInputs material =
-    BlendedMaterialSetup(i.tex, i.eyeVec.xyz, IN_VIEWDIR4PARALLAX_FWDADD(i), i.tangentToWorldAndLightDir, 
-        IN_WORLDPOS_FWDADD(i), i.color);
+    BlendedMaterialSetup(i.tex,i.tangentToWorldAndLightDir, IN_WORLDPOS_FWDADD(i), i.color);
 
     prepareMaterial(shading, material);
 
@@ -513,6 +511,8 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             Tags {"LightMode"="Meta"}
             Cull Off
             CGPROGRAM
+            
+            #define REQUIRE_META_WORLDPOS
 
             #include "Packages/s-ilent.filamented/Filamented/UnityStandardMeta.cginc"
 
@@ -521,8 +521,8 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             float4 frag_meta2 (v2f_meta i): SV_Target
             {
                 MaterialInputs material = SETUP_BRDF_INPUT (i.uv);
-                float4 dummy[3]; dummy[0] = 0; dummy[1] = 0; dummy[2] = 0;
-                material = BlendedMaterialSetup(i.uv, 0, 0, dummy, 0, i.color);
+                float4 dummy[3]; dummy[0] = 1; dummy[1] = 0; dummy[2] = 0;
+                material = BlendedMaterialSetup(i.uv, dummy, i.worldPos, i.color);
                 
                 PixelParams pixel = (PixelParams)0;
                 getCommonPixelParams(material, pixel);

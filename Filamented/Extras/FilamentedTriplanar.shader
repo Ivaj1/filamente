@@ -8,7 +8,7 @@ Shader "Silent/Filamented Extras/Simple Triplanar Filamented"
         _Color("Color", Color) = (1,1,1,1)
         [NoScaleOffset]_MainTex("Albedo", 2D) = "white" {}
         [Space]
-        [Normal] _BumpMap("Normal", 2D) = "bump" {}
+        [NoScaleOffset][Normal] _BumpMap("Normal", 2D) = "bump" {}
         _BumpScale("Normal Scale", Float) = 1
         [Space]
         [NoScaleOffset]_MOESMap("MOES Map", 2D) = "white" {}
