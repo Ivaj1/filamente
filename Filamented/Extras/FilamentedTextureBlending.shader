@@ -502,7 +502,7 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             #pragma vertex vertShadowCaster
             #pragma fragment fragShadowCaster
 
-            #include "UnityStandardShadow.cginc"
+            #include "Packages/s-ilent.filamented/Filamented/UnityStandardShadow.cginc"
 
             ENDCG
         }
@@ -514,7 +514,7 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             Cull Off
             CGPROGRAM
 
-            #include "UnityStandardMeta.cginc"
+            #include "Packages/s-ilent.filamented/Filamented/UnityStandardMeta.cginc"
 
             #define META_PASS
 
