@@ -29,6 +29,13 @@
 #define USE_GEOMETRIC_SPECULAR_AA_DEFAULT
 #endif
 
+// Whether to use Unity's "Standard Input" texture defines, which are needed
+// for Standard-like operation but can conflict with templates.
+#if !defined(SKIP_UNITY_STANDARD_INPUT_DEFINES)
+#define USE_UNITY_STANDARD_INPUT_DEFINES
+// Avoid compilation error on missing _ParallaxMap.
+#define PARALLAX_CUSTOM_INPUT
+#endif
 
 // Whether to read the _DFG texture for DFG instead of the approximate one. 
 // The shader must have a _DFG texture property, so don't enable this here.
@@ -106,7 +113,9 @@
 UNITY_DECLARE_TEX2D_FLOAT(_DFG);
 #endif
 
+// Todo: Bakery seems to recommend disabling RNM when normal maps are not active. 
 #if defined(_BAKERY_RNM) || defined(_BAKERY_SH)
+// Set when Bakery-specific lightmap textures need to be read.
 #define USING_BAKERY
 UNITY_DECLARE_TEX2D_HALF(_RNM0);
 UNITY_DECLARE_TEX2D_HALF(_RNM1);

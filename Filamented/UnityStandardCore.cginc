@@ -146,6 +146,7 @@ void GetBakedAttenuation(inout float atten, float2 lightmapUV, float3 worldPos)
 #define MATERIAL_SETUP_FWDADD(x) MaterialInputs x = \
     MaterialSetup(i.tex, i.eyeVec.xyz, IN_VIEWDIR4PARALLAX_FWDADD(i), i.tangentToWorldAndLightDir, IN_WORLDPOS_FWDADD(i));
 
+#if !defined(SKIP_UNITY_STANDARD_INPUT_DEFINES)
 #if defined(SHADING_MODEL_CLOTH)
     #define SETUP_BRDF_INPUT ClothMaterialSetup
 inline MaterialInputs ClothMaterialSetup (float4 i_tex)
@@ -222,6 +223,7 @@ inline MaterialInputs MetallicMaterialSetup (float4 i_tex)
 #endif
 #endif
 #endif
+#endif
 
 #ifndef SETUP_BRDF_INPUT 
     #define SETUP_BRDF_INPUT NoneMaterialSetup
@@ -237,6 +239,10 @@ inline MaterialInputs NoneMaterialSetup (float4 i_tex)
 // parallax transformed texcoord is used to sample occlusion
 inline MaterialInputs MaterialSetup (inout float4 i_tex, float3 i_eyeVec, half3 i_viewDirForParallax, float4 tangentToWorld[3], float3 i_posWorld)
 {
+#if defined(SKIP_UNITY_STANDARD_INPUT_DEFINES)
+    MaterialInputs material = SETUP_BRDF_INPUT (i_tex);
+    return material;
+#else
     float3 viewDirWS = -normalize(i_posWorld - _WorldSpaceCameraPos);
     float3 normalWS = tangentToWorld[2];
     float parallaxLod = abs(dot(normalWS, viewDirWS));
@@ -255,6 +261,7 @@ inline MaterialInputs MaterialSetup (inout float4 i_tex, float3 i_eyeVec, half3 
     #endif
     material.ambientOcclusion = Occlusion(i_tex);
     return material;
+#endif
 }
 
 
