@@ -360,5 +360,23 @@ float remap_almostIdentity( float x, float m, float n )
 }
 
 //-------------------------------------------------------------------------------------
+// Bakery utility functions
+//-------------------------------------------------------------------------------------
+
+#ifdef USING_BAKERY_VERTEXLM
+float4 unpack4NFloats(float src) 
+{
+    return frac(float4(src / (262144.0*64), src / (4096.0*64), src / (64.0*64), src));
+}
+float3 unpack3NFloats(float src) 
+{
+    float r = frac(src);
+    float g = frac(src * 256.0);
+    float b = frac(src * 65536.0);
+    return float3(r, g, b);
+}
+#endif
+
+//-------------------------------------------------------------------------------------
 
 #endif // UNITY_STANDARD_UTILS_INCLUDED

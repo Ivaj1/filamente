@@ -42,7 +42,7 @@ Shader "Silent/Filamented"
         // New settings
         _ExposureOcclusion("Lightmap Occlusion Sensitivity", Range(0, 1)) = 0.2
         [Toggle(_LIGHTMAPSPECULAR)]_LightmapSpecular("Lightmap Specular", Range(0, 1)) = 1
-        _LightmapSpecularMaxSmoothness("Lightmap Specular Max Smoothness", Range(0, 1)) = 1
+        _LightmapSpecularMaxSmoothness("Lightmap Specular Max Smoothness", Range(0, 1)) = 0.9
 
         [Toggle(_NORMALMAP_SHADOW)]_NormalMapShadows("Normal Map Shadows", Range(0, 1)) = 0
         _BumpShadowHeightScale("Height Scale", Range(0, 1)) = 0.2
@@ -52,6 +52,7 @@ Shader "Silent/Filamented"
         _specularAntiAliasingThreshold("Specular AA Threshold", Range(0, 1)) = 0.25
 
         [KeywordEnum(None, SH, RNM, MonoSH)] _Bakery ("Bakery Mode", Int) = 0
+        [Toggle(_BAKERY_VERTEXLM)]_BakeryVertexLM ("Use Bakery Vertex Lightmaps", Range(0, 1)) = 0
             _RNM0("RNM0", 2D) = "black" {}
             _RNM1("RNM1", 2D) = "black" {}
             _RNM2("RNM2", 2D) = "black" {}
@@ -116,6 +117,7 @@ Shader "Silent/Filamented"
             #pragma shader_feature_local _LIGHTMAPSPECULAR
             #pragma shader_feature_local _NORMALMAP_SHADOW
             #pragma shader_feature_local _ _BAKERY_RNM _BAKERY_SH _BAKERY_MONOSH
+            #pragma shader_feature_local _BAKERY_VERTEXLM
             #pragma shader_feature_local _LTCGI
 
             #pragma multi_compile_fwdbase

@@ -412,4 +412,18 @@ half getLightmapSpecularMaxSmoothness()
     return _LightmapSpecularMaxSmoothness;
 }
 
+bool getIsBakeryVertexMode()
+{
+#if defined(USING_BAKERY_VERTEXLM)
+    // Todo: Move these somewhere better.
+    #define BAKERYMODE_DEFAULT 0
+    #define BAKERYMODE_VERTEXLM 1.0f
+    #define BAKERYMODE_RNM 2.0f
+    #define BAKERYMODE_SH 3.0f
+
+    return (bakeryLightmapMode == BAKERYMODE_VERTEXLM);
+#endif
+    return false;
+}
+
 #endif // UNITY_STANDARD_INPUT_INCLUDED

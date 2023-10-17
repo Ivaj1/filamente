@@ -47,5 +47,11 @@ struct ShadingParams {
       float3 ambient;
       float4 lightmapUV;
 
+#if defined(USING_BAKERY_VERTEXLMSH)
+      float3 ambientSH[3];
+#elif defined(USING_BAKERY_VERTEXLMDIR)
+      float3 ambientDir;
+#endif
+
 };
 #endif // FILAMENT_COMMON_SHADING 

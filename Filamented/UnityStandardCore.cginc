@@ -283,6 +283,13 @@ inline half4 VertexGIForward(VertexInput v, float3 posWorld, half3 normalWorld)
         ambientOrLightmapUV.zw = v.uv2.xy * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
     #endif
 
+    #if defined(USING_BAKERY_VERTEXLMMASK)
+        if (getIsBakeryVertexMode())
+        {
+            ambientOrLightmapUV = unpack4NFloats(v.uv1.x);
+        }
+    #endif
+
     return ambientOrLightmapUV;
 }
 
@@ -307,8 +314,19 @@ struct VertexOutputForwardBase
     float3 lightDirTS                   : TEXCOORD9;
 #endif
 
+#if defined(_BAKERY_VERTEXLM)
+    float4 color : COLOR_centroid;
+    #if defined(USING_BAKERY_VERTEXLMDIR)
+        float3 lightDirection : TEXCOORD10_centroid; 
+    #elif defined(_BAKERY_SH)
+        float3 shL1x : TEXCOORD10_centroid;
+        float3 shL1y : TEXCOORD11_centroid;
+        float3 shL1z : TEXCOORD12_centroid;
+    #endif
+#else
 #if defined(HAS_ATTRIBUTE_COLOR)
     float4 color                        : COLOR_centroid;
+#endif
 #endif
 
     UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -375,6 +393,22 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
     o.color = v.color;
     #endif
 
+    #if defined(USING_BAKERY_VERTEXLM)
+    // Unpack from RGBM
+    o.color = v.color;
+    o.color.rgb *= o.color.a * 8.0f;
+    o.color.rgb *= o.color.rgb;
+
+    #if defined(USING_BAKERY_VERTEXLMDIR)
+        o.lightDirection = unpack3NFloats(v.uv1.y) * 2 - 1;
+    #elif defined(USING_BAKERY_VERTEXLMSH)
+        o.shL1x = unpack3NFloats(v.uv1.y) * 2 - 1;
+        o.shL1y = unpack3NFloats(v.uv3.x) * 2 - 1;
+        o.shL1z = unpack3NFloats(v.uv3.y) * 2 - 1;
+    #endif
+
+    #endif
+
     UNITY_TRANSFER_FOG_COMBINED_WITH_EYE_VEC(o,o.pos);
     return o;
 }
@@ -418,6 +452,25 @@ void computeShadingParamsForwardBase(inout ShadingParams shading, VertexOutputFo
         shading.ambient = i.ambientOrLightmapUV.rgb;
         shading.lightmapUV = 0;
     #endif
+
+#if defined(USING_BAKERY_VERTEXLMMASK)
+    if (getIsBakeryVertexMode())
+    {
+        shading.attenuation = saturate(dot(i.ambientOrLightmapUV, unity_OcclusionMaskSelector));
+    }
+#endif
+
+#if defined(USING_BAKERY_VERTEXLM)
+    shading.ambient = i.color;
+#endif
+
+#if defined(USING_BAKERY_VERTEXLMSH)
+    shading.ambientSH[0] = i.shL1x;
+    shading.ambientSH[1] = i.shL1y;
+    shading.ambientSH[2] = i.shL1z;
+#elif defined(USING_BAKERY_VERTEXLMDIR)
+    shading.ambientDir = i.lightDirection;
+#endif
 }
 
 half4 fragForwardBaseInternal (VertexOutputForwardBase i, bool gl_FrontFacing = true)
@@ -476,9 +529,15 @@ struct VertexOutputForwardAdd
     float3 lightDirTS                   : TEXCOORD9;
 #endif
 
+    // If Bakery LM mode is active, vertex colour is base lightmap. 
+#if defined(USING_BAKERY_VERTEXLMMASK)
+    fixed4 shadowMask                   : COLOR_centroid;
+#else
 #if defined(HAS_ATTRIBUTE_COLOR)
     float4 color                        : COLOR_centroid;
 #endif
+#endif
+
 
     UNITY_VERTEX_OUTPUT_STEREO
 };
@@ -532,8 +591,12 @@ VertexOutputForwardAdd vertForwardAdd (VertexInput v)
     #endif
     #endif
 
+    #if defined(USING_BAKERY_VERTEXLMMASK)
+    o.shadowMask = unpack4NFloats(v.uv1.x);
+    #else
     #if defined(HAS_ATTRIBUTE_COLOR)
     o.color = v.color;
+    #endif
     #endif
 
     UNITY_TRANSFER_FOG_COMBINED_WITH_EYE_VEC(o, o.pos);
@@ -565,6 +628,13 @@ void computeShadingParamsForwardAdd(inout ShadingParams shading, VertexOutputFor
 
     UNITY_LIGHT_ATTENUATION(atten, i, shading.position)
     shading.attenuation = atten;
+
+#if defined(USING_BAKERY_VERTEXLMMASK)
+    if (getIsBakeryVertexMode())
+    {
+        shading.attenuation *= saturate(dot(i.shadowMask, unity_OcclusionMaskSelector));
+    }
+#endif
 }
 
 half4 fragForwardAddInternal (VertexOutputForwardAdd i, bool gl_FrontFacing = true)

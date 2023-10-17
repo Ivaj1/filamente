@@ -75,6 +75,7 @@ namespace SilentTools
             public static GUIContent normalMapShadowsHardnessText = EditorGUIUtility.TrTextContent("Hardness", "Controls the hardness of normal map shadows, which are dithered to avoid jagged artifacts.");
 
             public static GUIContent bakeryModeText = EditorGUIUtility.TrTextContent("Bakery Mode", "Sets the material to use one of Bakery's directionality map modes.");
+            public static GUIContent bakeryVertexModeText = EditorGUIUtility.TrTextContent("Use Vertex Lightmaps", "Sets the material to allow using Bakery's vertex lightmap baking.");
             public static GUIContent bakeryRNMText = EditorGUIUtility.TrTextContent("Bakery Lightmap", "This texture is applied either by the Bakery runtime script or an external script according to the mesh renderer and can not be modified.");
 
             public static GUIContent ltcgiModeText = EditorGUIUtility.TrTextContent("LTCGI Mode", "Sets whether the material can receive lights from LTCGI sources in the scene.");
@@ -131,6 +132,7 @@ namespace SilentTools
         MaterialProperty normalMapShadowsHardness = null;
 
         MaterialProperty bakeryMode = null;
+        MaterialProperty bakeryVertexMode = null;
         MaterialProperty bakeryRNM0 = null;
         MaterialProperty bakeryRNM1 = null;
         MaterialProperty bakeryRNM2 = null;
@@ -203,6 +205,7 @@ namespace SilentTools
             normalMapShadowsHardness = FindProperty("_BumpShadowHardness", props, false);
 
             bakeryMode = FindProperty("_Bakery", props, false);
+            bakeryVertexMode = FindProperty("_BakeryVertexLM", props, false);
             bakeryRNM0 = FindProperty("_RNM0", props, false);
             bakeryRNM1 = FindProperty("_RNM1", props, false);
             bakeryRNM2 = FindProperty("_RNM2", props, false);
@@ -300,6 +303,7 @@ namespace SilentTools
     #if BAKERY_INCLUDED
                     if (bakeryMode != null)
                         m_MaterialEditor.ShaderProperty(bakeryMode, Styles.bakeryModeText);
+                        m_MaterialEditor.ShaderProperty(bakeryVertexMode, Styles.bakeryVertexModeText);
                     if ((BlendMode)material.GetFloat("_Bakery") != 0)
                     {
                         EditorGUI.BeginDisabledGroup(true);

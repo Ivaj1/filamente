@@ -454,16 +454,61 @@ float3 DecodeSHLightmap(half3 L0, half2 lightmapUV, half3 normalWorld, out Light
 
     return irradiance;
 }
+
+float3 DecodeSHLightmapVertex(half3 L0, half3 ambientSH[3], half3 normalWorld, out Light o_light)
+{
+    float3 irradiance;
+    o_light = (Light)0;
+
+    float3 nL1x = ambientSH[0];
+    float3 nL1y = ambientSH[1];
+    float3 nL1z = ambientSH[2];
+
+    nL1x = nL1x * 2 - 1;
+    nL1y = nL1y * 2 - 1;
+    nL1z = nL1z * 2 - 1;
+    float3 L1x = nL1x * L0 * 2;
+    float3 L1y = nL1y * L0 * 2;
+    float3 L1z = nL1z * L0 * 2;
+
+    #ifdef BAKERY_SHNONLINEAR
+        float lumaL0 = dot(L0, float(1));
+        float lumaL1x = dot(L1x, float(1));
+        float lumaL1y = dot(L1y, float(1));
+        float lumaL1z = dot(L1z, float(1));
+        float lumaSH = shEvaluateDiffuseL1Geomerics_local(lumaL0, float3(lumaL1x, lumaL1y, lumaL1z), normalWorld);
+
+        irradiance = L0 + normalWorld.x * L1x + normalWorld.y * L1y + normalWorld.z * L1z;
+        float regularLumaSH = dot(irradiance, 1);
+        irradiance *= lerp(1, lumaSH / regularLumaSH, saturate(regularLumaSH*16));
+    #else
+        irradiance = L0 + normalWorld.x * L1x + normalWorld.y * L1y + normalWorld.z * L1z;
+    #endif
+
+    #if defined(LIGHTMAP_SPECULAR)
+    float3 dominantDir = float3(luminance(nL1x), luminance(nL1y), luminance(nL1z));
+
+    o_light.l = dominantDir;
+    half directionality = max(0.001, length(o_light.l));
+    o_light.l /= directionality;
+
+    // Split light into the directional and ambient parts, according to the directionality factor.
+    o_light.colorIntensity = float4(irradiance * directionality, 1.0);
+    o_light.attenuation = directionality;
+    o_light.NoL = saturate(dot(normalWorld, o_light.l));
+    #endif
+
+    return irradiance;
+}
 #endif
 
 #if defined(_BAKERY_MONOSH)
-float3 DecodeMonoSHLightmap(half3 L0, half2 lightmapUV, half3 normalWorld, out Light o_light)
+float3 DecodeMonoSHLightmap(half3 L0, half3 dominantDir, half3 normalWorld, out Light o_light, const bool remapDir = true)
 {
     o_light = (Light)0;
 
-    float3 dominantDir = SampleLightmapDirBicubic (lightmapUV);
-
-    float3 nL1 = dominantDir * 2 - 1;
+    // Vertex mode is already in -1 to 1 range.
+    float3 nL1 = remapDir? dominantDir * 2 - 1 : dominantDir;
     float3 L1x = nL1.x * L0 * 2;
     float3 L1y = nL1.y * L0 * 2;
     float3 L1z = nL1.z * L0 * 2;
@@ -522,9 +567,11 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
 
     irradianceForAO = irradiance;
 
+    // Should be stripped out at compile time if vertex LM mode is disabled.
+    if (getIsBakeryVertexMode() == false)
+    {
     #if defined(LIGHTMAP_ON)
         // Baked lightmaps
-        
         half4 bakedColorTex = SampleLightmapBicubic(shading.lightmapUV.xy);
         half3 bakedColor = DecodeLightmap(bakedColorTex);
 
@@ -533,7 +580,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
 
             // Bakery's MonoSH mode replaces the regular directional lightmap
             #if defined(_BAKERY_MONOSH)
-                irradiance = DecodeMonoSHLightmap (bakedColor, shading.lightmapUV.xy, shading.normal, derivedLight);
+                irradiance = DecodeMonoSHLightmap (bakedColor, bakedDirTex, shading.normal, derivedLight);
 
                 irradianceForAO = irradiance;
 
@@ -585,6 +632,48 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
             #endif
 
         #endif
+    #endif
+    }
+    #if defined(USING_BAKERY_VERTEXLM)
+    else
+    {
+        // Lightmap colour is already stored in shading.ambient.
+        // If directionality is on, then ambientDir contains directionality.
+        // If SH is on, then ambientSH[3] contains the SH data.
+
+        #if defined(USING_BAKERY_VERTEXLMSH)
+            irradiance = DecodeSHLightmapVertex(shading.ambient, shading.ambientSH, shading.normal, derivedLight);
+            irradianceForAO = irradiance;
+            #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
+                irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, shading.ambient, shading.normal);
+            #endif
+        #else
+            #if defined(USING_BAKERY_VERTEXLMDIR)
+                #if defined(_BAKERY_MONOSH)
+                    irradiance = DecodeMonoSHLightmap (shading.ambient, shading.ambientDir, shading.normal, derivedLight, false);
+                    irradianceForAO = irradiance;
+                    #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
+                        irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, shading.ambient, shading.normal);
+                    #endif
+                #else
+                    irradiance = DecodeDirectionalLightmap (shading.ambient, shading.ambientDir, shading.normal);
+                    irradianceForAO = irradiance;
+                    #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
+                        irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, shading.ambient, shading.normal);
+                    #endif
+                    #if defined(LIGHTMAP_SPECULAR) 
+                        irradiance = DecodeDirectionalLightmapSpecular(shading.ambient, shading.ambientDir, shading.normal, false, 0, derivedLight);
+                    #endif
+                #endif 
+            #else
+                // No directionality, just light colour.
+                // Irradiance and IrradianceForAO already contain the irradiance, so just handle subtractive lighting. 
+                #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
+                    irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap(irradiance, shading.attenuation, bakedColorTex, shading.normal);
+                #endif
+            #endif
+        #endif 
+    }
     #endif
 
     #if defined(DYNAMICLIGHTMAP_ON)
