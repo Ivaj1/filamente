@@ -435,6 +435,14 @@ namespace SilentTools
         {
             EditorGUI.showMixedValue = blendMode.hasMixedValue;
             var mode = (int)m_SettingsMode;
+            
+            //First time
+            //When filamented_settings_mode is not set, GetConfigValue is not possible, so store the current value.
+            if (string.IsNullOrEmpty(EditorUserSettings.GetConfigValue("filamented_settings_mode")))
+            {
+                EditorUserSettings.SetConfigValue("filamented_settings_mode", mode.ToString());
+                return true;
+            }
 
             EditorGUI.BeginChangeCheck();
             mode = EditorGUILayout.Popup(Styles.settingsMode, mode, Styles.settingNames);
