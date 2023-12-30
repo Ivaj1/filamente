@@ -37,6 +37,9 @@ Shader "Silent/Filamented Extras/Filamented Texture Blending"
         [Toggle(_DEBUG_VIEWWEIGHTS)]_DebugViewBlendingWeights("Debug View for Blend Weights", Float ) = 0.0
 
         [Space]
+        [Toggle(_STOCHASTIC)]_UseStochastic("Use Stochastic Sampling", Float) = 0.0
+
+        [Space]
         [Toggle(_TRIPLANAR)]_UseTriplanar("Use Triplanar Sampling", Float) = 0.0
         _UVTransform0("Triplanar UV Transform X", Vector) = (1, 0, 0, 0)
         _UVTransform1("Triplanar UV Transform Y", Vector) = (0, 1, 0, 0)
@@ -100,6 +103,7 @@ Shader "Silent/Filamented Extras/Filamented Texture Blending"
     ENDCG
 
     CGINCLUDE
+    // UNITY_SHADER_NO_UPGRADE 
     #ifndef UNITY_PASS_SHADOWCASTER
 
     // Include common files. These will include the other files as needed.
@@ -138,6 +142,43 @@ Shader "Silent/Filamented Extras/Filamented Texture Blending"
 	VertexOutputForwardBase vertBase (VertexInput v) { return vertForwardBase(v); }
 	VertexOutputForwardAdd vertAdd (VertexInput v) { return vertForwardAdd(v); }
 
+//hash for randomness
+float2 hash2D2D(float2 s)
+{
+	//magic numbers
+	return frac(sin(fmod(float2(dot(s, float2(127.1, 311.7)), dot(s, float2(269.5, 183.3))), 3.14159)) * 43758.5453);
+}
+
+//stochastic sampling
+float4 tex2DStochastic(TEXTURE2D_PARAM(tex, smp), float2 UV)
+{
+	//triangle vertices and blend weights
+	//BW_vx[0...2].xyz = triangle verts
+	//BW_vx[3].xy = blend weights (z is unused)
+	float4x3 BW_vx;
+
+	//uv transformed into triangular grid space with UV scaled by approximation of 2*sqrt(3)
+	float2 skewUV = mul(float2x2 (1.0, 0.0, -0.57735027, 1.15470054), UV * 3.464);
+
+	//vertex IDs and barycentric coords
+	float2 vxID = float2 (floor(skewUV));
+	float3 barry = float3 (frac(skewUV), 0);
+	barry.z = 1.0 - barry.x - barry.y;
+
+	BW_vx = ((barry.z > 0) ?
+			 float4x3(float3(vxID, 0), float3(vxID + float2(0, 1), 0), float3(vxID + float2(1, 0), 0), barry.zyx) :
+			 float4x3(float3(vxID + float2 (1, 1), 0), float3(vxID + float2 (1, 0), 0), float3(vxID + float2 (0, 1), 0), float3(-barry.z, 1.0 - barry.y, 1.0 - barry.x)));
+
+	//calculate derivatives to avoid triangular grid artifacts
+	float2 dx = ddx(UV);
+	float2 dy = ddy(UV);
+
+	//blend samples with calculated weights
+	return  mul(SAMPLE_TEXTURE2D_GRAD(tex, smp, UV + hash2D2D(BW_vx[0].xy), dx, dy), BW_vx[3].x) +
+		    mul(SAMPLE_TEXTURE2D_GRAD(tex, smp, UV + hash2D2D(BW_vx[1].xy), dx, dy), BW_vx[3].y) +
+		    mul(SAMPLE_TEXTURE2D_GRAD(tex, smp, UV + hash2D2D(BW_vx[2].xy), dx, dy), BW_vx[3].z);
+}
+
 // Typical triplanar mapping -- has less visual artifacts than biplanar.
 // Artifacts stand out because this is a material shader for things like
 // terrain which cover a large portion of the screen.
@@ -161,6 +202,31 @@ float4 boxmap( TEXTURE2D_PARAM(tex, smp), float3 p, float3 n, float k )
     return (x*m.x + y*m.y + z*m.z) / (m.x + m.y + m.z);
 }
 
+float4 tex2DStochasticBoxmap(TEXTURE2D_PARAM(tex, smp), float3 p, float3 n, float k)
+{
+    // Stochastic sampling
+    float4x3 BW_vx;
+    float3 m = pow( abs(n), k );
+    float2 skewUV = mul(float2x2 (1.0, 0.0, -0.57735027, 1.15470054), (p.xy * m.x + p.yz * m.y + p.zx * m.z) * 3.464);
+    float2 vxID = float2 (floor(skewUV));
+    float3 barry = float3 (frac(skewUV), 0);
+    barry.z = 1.0 - barry.x - barry.y;
+
+    BW_vx = ((barry.z > 0) ?
+             float4x3(float3(vxID, 0), float3(vxID + float2(0, 1), 0), float3(vxID + float2(1, 0), 0), barry.zyx) :
+             float4x3(float3(vxID + float2 (1, 1), 0), float3(vxID + float2 (1, 0), 0), float3(vxID + float2 (0, 1), 0), float3(-barry.z, 1.0 - barry.y, 1.0 - barry.x)));
+
+    // Box mapping
+    float3 dpdx = ddx(p);
+    float3 dpdy = ddy(p);
+
+    // Blend samples with calculated weights
+    return ((m.x > 0 ? mul(SAMPLE_TEXTURE2D_GRAD(tex, smp, p.zy + hash2D2D(BW_vx[0].xy), dpdx.zy, dpdy.zy), BW_vx[3].x) : 0) +
+            (m.y > 0 ? mul(SAMPLE_TEXTURE2D_GRAD(tex, smp, p.zx + hash2D2D(BW_vx[1].xy), dpdx.zx, dpdy.zx), BW_vx[3].y) : 0) +
+            (m.z > 0 ? mul(SAMPLE_TEXTURE2D_GRAD(tex, smp, p.xy + hash2D2D(BW_vx[2].xy), dpdx.xy, dpdy.xy), BW_vx[3].z) : 0)) / (m.x + m.y + m.z);
+}
+
+
 float3 RNMBlendUnpacked(float3 n1, float3 n2)
 {
     n1 += float3( 0,  0, 1);
@@ -177,9 +243,17 @@ void addLayer(float weight, float2 uv, float4 uv_ST,
     if (weight > 0)  
     {
         uv = uv * uv_ST.xy + uv_ST.zw;
+
+        #if defined(_STOCHASTIC)
+        float4 thisBasemap = tex2DStochastic(tex_A, smp_A, uv);
+        float3 thisNormal = UnpackScaleNormal(tex2DStochastic(tex_N, smp_N, uv), weight);
+        float4 thisProps = tex2DStochastic(tex_M, smp_M, uv);
+        #else
         float4 thisBasemap = SAMPLE_TEXTURE2D(tex_A, smp_A, uv);
         float3 thisNormal = UnpackScaleNormal(SAMPLE_TEXTURE2D(tex_N, smp_N, uv), weight);
         float4 thisProps = SAMPLE_TEXTURE2D(tex_M, smp_M, uv);
+        #endif
+
         thisProps.rba *= maskProps.rba; // metallic, emission, smoothness
         thisProps.g = lerp(1, thisProps.g, maskProps.g); // occlusion
 
@@ -205,9 +279,17 @@ void addLayerTriplanar(float weight, float3 p, float3 n, float4 uv_ST,
     if (weight > 0)
     {
         p = p * uv_ST.xyx + uv_ST.zwz;
+
+        #if defined(_STOCHASTIC)
+        float4 thisBasemap = tex2DStochasticBoxmap(TEXTURE2D_ARGS(tex_A, smp_A), p, n, tightness);
+        float3 thisNormal = UnpackScaleNormal(tex2DStochasticBoxmap(TEXTURE2D_ARGS(tex_N, smp_N), p, n, tightness), weight);
+        float4 thisProps = tex2DStochasticBoxmap(TEXTURE2D_ARGS(tex_M, smp_M), p, n, tightness);
+        #else
         float4 thisBasemap = boxmap(TEXTURE2D_ARGS(tex_A, smp_A), p, n, tightness);
         float3 thisNormal = UnpackScaleNormal(boxmap(TEXTURE2D_ARGS(tex_N, smp_N), p, n, tightness), weight);
         float4 thisProps = boxmap(TEXTURE2D_ARGS(tex_M, smp_M), p, n, tightness);
+        #endif
+
         thisProps.rba *= maskProps.rba; // metallic, emission, smoothness
         thisProps.g = lerp(1, thisProps.g, maskProps.g); // occlusion
 
@@ -426,6 +508,8 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             #pragma shader_feature_local _LTCGI
             #pragma shader_feature_local _SPLATMAP
             #pragma shader_feature_local _TRIPLANAR
+            #pragma shader_feature_local _STOCHASTIC
+            
             #pragma shader_feature_local _DEBUG_VIEWWEIGHTS
 
             #pragma multi_compile_fwdbase
@@ -461,6 +545,7 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local _SPLATMAP
             #pragma shader_feature_local _TRIPLANAR
+            #pragma shader_feature_local _STOCHASTIC
 
             #pragma multi_compile_fwdadd_fullshadows
             #pragma multi_compile_fog
