@@ -304,7 +304,9 @@ struct VertexInput
         float2 dY;
     };
 
-    #if (!defined(PARALLAX_CUSTOM_INPUT))
+    #if defined(PARALLAX_CUSTOM_INPUT)
+        // Dummy function
+    #else
         PerPixelHeightDisplacementParam InitPerPixelHeightDisplacementParam(float2 uv)
         {
             PerPixelHeightDisplacementParam ppd;
@@ -358,12 +360,6 @@ struct VertexInput
     #endif
         return texcoords;
     }
-    #else
-        // Dummy function
-        float4 Parallax (float4 texcoords, half3 viewDir, half lod = 0)
-        {
-            return texcoords;
-        }
     #endif // USE_UNITY_STANDARD_INPUT_DEFINES
 
     #if (defined(_NORMALMAP) && defined(NORMALMAP_SHADOW))

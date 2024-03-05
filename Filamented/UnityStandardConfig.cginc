@@ -33,8 +33,6 @@
 // for Standard-like operation but can conflict with templates.
 #if !defined(SKIP_UNITY_STANDARD_INPUT_DEFINES)
 #define USE_UNITY_STANDARD_INPUT_DEFINES
-// Avoid compilation error on missing _ParallaxMap.
-#define PARALLAX_CUSTOM_INPUT
 #endif
 
 // Whether to read the _DFG texture for DFG instead of the approximate one. 
@@ -88,6 +86,9 @@
 // By default, Standard assumes meshes have normals
 #define HAS_ATTRIBUTE_TANGENTS
 
+// Standard includes many defines for excluding specific types of texture maps, 
+// but _OcclusionMap is not one of them. However, this is defined in the individual
+// shader files to make it clearer. 
 //#define MATERIAL_HAS_AMBIENT_OCCLUSION 
 
 // If USE_GEOMETRIC_SPECULAR_AA is set, don't use the default values
