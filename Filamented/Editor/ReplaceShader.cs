@@ -42,27 +42,28 @@ public class ReplaceShader : ScriptableWizard
 	public Shader oldShader;
 	public Shader newShader;
 	
-	[MenuItem("Tools/Replace Shader")]
+	[MenuItem("Tools/Silent/Batch Replace Shaders")]
 
 	static void CreateWizard ()
 	{
-		ScriptableWizard .DisplayWizard<ReplaceShader>  ("Replace Shader", "ReplaceShader");
+		ScriptableWizard.DisplayWizard<ReplaceShader>  ("Replace Shader", "ReplaceShader");
 	}
 
 	void OnWizardCreate ()
 	{
-		//Transform[] Replaces;
-		//Replaces = Replace.GetComponentsInChildren();
 		Renderer[] renderers = GameObject.FindSceneObjectsOfType (typeof(Renderer)) as Renderer[];
+		int totalMaterials = 0;
+		int updatedMaterials = 0;
 		foreach (var renderer in renderers) {
 			foreach (Material m in renderer.sharedMaterials) {
+				totalMaterials++;
 				if (m != null && m.shader == oldShader) {
 					m.shader = newShader;
-					Debug.Log (m.name);
+					updatedMaterials++;
 				}
 			}
-
 		}
+		Debug.Log("Updated " + updatedMaterials + " materials of " + totalMaterials + ".");
 	}
 }
 }

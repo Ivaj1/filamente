@@ -54,11 +54,11 @@ public class UpdateBakerySHMode : ScriptableWizard
 	[SerializeField]
 	private BakeryRenderDirMode newDirectionalMode;
 	
-	[MenuItem("Tools/Update Material Directional Mode for Bakery")]
+	[MenuItem("Tools/Silent/Update Material Directional Mode for Bakery")]
 
 	static void CreateWizard ()
 	{
-		ScriptableWizard .DisplayWizard<UpdateBakerySHMode>  ("Update Material Directional Mode for Bakery", "Update");
+		ScriptableWizard.DisplayWizard<UpdateBakerySHMode>  ("Update Material Directional Mode for Bakery", "Update");
 	}
 
 	private void ClearBakeryKeywords(Material m)
@@ -71,11 +71,13 @@ public class UpdateBakerySHMode : ScriptableWizard
 
 	void OnWizardCreate ()
 	{
-		//Transform[] Replaces;
-		//Replaces = Replace.GetComponentsInChildren();
+		int totalMaterials = 0;
+		int updatedMaterials = 0;
+
 		Renderer[] renderers = GameObject.FindSceneObjectsOfType (typeof(Renderer)) as Renderer[];
 		foreach (var renderer in renderers) {
 			foreach (Material m in renderer.sharedMaterials) {
+				totalMaterials++;
 				// Probably only works with Filamented or its templates. Sorry!
 				if (m != null && m.HasProperty("_Bakery")) {
 					switch(newDirectionalMode)
@@ -111,11 +113,12 @@ public class UpdateBakerySHMode : ScriptableWizard
 						break;
 
 					}
-					Debug.Log (m.name);
+					updatedMaterials++;
 				}
 			}
 
 		}
+		Debug.Log("Updated " + updatedMaterials + " materials of " + totalMaterials + ".");
 	}
 }
 }
