@@ -640,12 +640,13 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
         // Lightmap colour is already stored in shading.ambient.
         // If directionality is on, then ambientDir contains directionality.
         // If SH is on, then ambientSH[3] contains the SH data.
+        half4 bakedColorTex = float4(shading.ambient, 1.0);
 
         #if defined(USING_BAKERY_VERTEXLMSH)
             irradiance = DecodeSHLightmapVertex(shading.ambient, shading.ambientSH, shading.normal, derivedLight);
             irradianceForAO = irradiance;
             #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
-                irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, shading.ambient, shading.normal);
+                irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, shading.normal);
             #endif
         #else
             #if defined(USING_BAKERY_VERTEXLMDIR)
@@ -653,13 +654,13 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
                     irradiance = DecodeMonoSHLightmap (shading.ambient, shading.ambientDir, shading.normal, derivedLight, false);
                     irradianceForAO = irradiance;
                     #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
-                        irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, shading.ambient, shading.normal);
+                        irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, shading.normal);
                     #endif
                 #else
                     irradiance = DecodeDirectionalLightmap (shading.ambient, shading.ambientDir, shading.normal);
                     irradianceForAO = irradiance;
                     #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
-                        irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, shading.ambient, shading.normal);
+                        irradiance = SubtractMainLightWithRealtimeAttenuationFromLightmap (irradiance, shading.attenuation, bakedColorTex, shading.normal);
                     #endif
                     #if defined(LIGHTMAP_SPECULAR) 
                         irradiance = DecodeDirectionalLightmapSpecular(shading.ambient, shading.ambientDir, shading.normal, false, 0, derivedLight);
@@ -1132,10 +1133,8 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
 #if defined(MATERIAL_HAS_NORMAL)
     tangentNormal = material.normal;
 #endif
-    float3 unityIrradiance = UnityGI_Irradiance(shading, tangentNormal, lightmapAO, derivedLight);
-
-    float diffuseAO = min(material.ambientOcclusion, ssao);
-    float specularAO = computeSpecularAO(shading.NoV, diffuseAO*lightmapAO, pixel.roughness);
+    float3 unityIrradiance = UnityGI_Irradiance(shading, tangentNormal, 
+        /*out*/ lightmapAO, /*out*/ derivedLight);
 
     // specular layer
     float3 Fr;
@@ -1149,7 +1148,12 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     Fr = isEvaluateSpecularIBL(pixel, shading.normal, shading.view, shading.NoV);
 #endif
 
-    Fr *= singleBounceAO(specularAO) * pixel.energyCompensation;
+    // Ambient occlusion
+    float diffuseAO = min(material.ambientOcclusion, ssao);
+    float specularAO = computeSpecularAO(shading.NoV, diffuseAO*lightmapAO, pixel.roughness);
+
+    float3 specularSingleBounceAO = singleBounceAO(specularAO) * pixel.energyCompensation;
+    Fr *= specularSingleBounceAO;
 
     // Gather LTCGI data, if present.
 #if defined(_LTCGI)
@@ -1220,8 +1224,13 @@ void evaluateIBL(const ShadingParams shading, const MaterialInputs material, con
     pixelForBakedSpecular.roughness = remap_almostIdentity(pixelForBakedSpecular.roughness,
         1-getLightmapSpecularMaxSmoothness(), 1-getLightmapSpecularMaxSmoothness()+MIN_ROUGHNESS);
     
-    if (derivedLight.NoL >= 0.0) color += surfaceShading(shading, pixelForBakedSpecular, derivedLight, 
-        computeMicroShadowing(derivedLight.NoL, material.ambientOcclusion * 0.8 + 0.3));
+    // derived light contribution from lightmap
+    if (derivedLight.NoL >= 0.0) 
+    {
+        float diffuseAOForLightmap = min(material.ambientOcclusion * 0.8 + 0.3, 1.0);
+        color += surfaceShading(shading, pixelForBakedSpecular, derivedLight, 
+        computeMicroShadowing(derivedLight.NoL, diffuseAOForLightmap));
+    };
     #endif
 }
 
