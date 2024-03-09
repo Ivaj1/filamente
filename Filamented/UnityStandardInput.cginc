@@ -439,6 +439,9 @@ bool getIsBakeryVertexMode()
 #if defined(USING_BAKERY_VERTEXLM)
     // Todo: Move these somewhere better.
     #define BAKERYMODE_DEFAULT 0
+    // When vertex lightmap is set in Bakery, it sets this float to the renderer via 
+    // SetPropertyBlock. Similarly, it only sets RNM/SH if the textures are used and present,
+    // but those are switched at compile time per-material. 
     #define BAKERYMODE_VERTEXLM 1.0f
     #define BAKERYMODE_RNM 2.0f
     #define BAKERYMODE_SH 3.0f

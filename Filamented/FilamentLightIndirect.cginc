@@ -635,7 +635,7 @@ float3 UnityGI_Irradiance(ShadingParams shading, float3 tangentNormal, out float
     #endif
     }
     #if defined(USING_BAKERY_VERTEXLM)
-    else
+    if (getIsBakeryVertexMode() == true)
     {
         // Lightmap colour is already stored in shading.ambient.
         // If directionality is on, then ambientDir contains directionality.
