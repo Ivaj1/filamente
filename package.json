@@ -1,6 +1,15 @@
 {
 	"name" : "s-ilent.filamented",
 	"displayName" : "Filamented",
-	"version" : "1.1.0",
-	"description" : "Filamented"
+	"version" : "1.2.0",
+	"description" : "An improved version of Unity Standard shader, consisting of higher-quality and extended features. Based off from Google's open source renderer, Filament.",
+	"unity" : "2019.4",
+	"gitDependencies" : {},
+	"vpmDependencies" : {},
+	"dependencies" : {},
+	"legacyFolders" : {
+		"Assets\\filamented-master" : "32a811cb38301e143afa8a0e47c61705"
+	},
+	"legacyFiles" : {},
+	"legacyPackages" : []
 }
