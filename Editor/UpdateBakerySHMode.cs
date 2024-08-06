@@ -72,6 +72,7 @@ public class UpdateBakerySHMode : ScriptableWizard
 	void OnWizardCreate ()
 	{
 		int totalMaterials = 0;
+		int validMaterials = 0;
 		int updatedMaterials = 0;
 
 		Renderer[] renderers = GameObject.FindSceneObjectsOfType (typeof(Renderer)) as Renderer[];
@@ -80,6 +81,8 @@ public class UpdateBakerySHMode : ScriptableWizard
 				totalMaterials++;
 				// Probably only works with Filamented or its templates. Sorry!
 				if (m != null && m.HasProperty("_Bakery")) {
+                	float originalBakeryValue = m.GetFloat("_Bakery");
+
 					switch(newDirectionalMode)
 					{
 						// Placeholders, but clearing is important. 
@@ -113,7 +116,11 @@ public class UpdateBakerySHMode : ScriptableWizard
 						break;
 
 					}
-					updatedMaterials++;
+					validMaterials++;
+					if (m.GetFloat("_Bakery") != originalBakeryValue)
+					{
+						updatedMaterials++;
+					}
 				}
 			}
 
