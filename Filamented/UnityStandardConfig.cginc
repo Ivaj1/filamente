@@ -134,34 +134,36 @@ UNITY_DECLARE_TEX2D_HALF(_RNM2);
 
 // For vertex lightmaps, 
 #if defined(_BAKERY_VERTEXLM)
-#define USING_BAKERY_VERTEXLM
+    #define USING_BAKERY_VERTEXLM
 
-// Colour is reserved by vertex LM.
-#ifdef HAS_ATTRIBUTE_COLOR
-#undef HAS_ATTRIBUTE_COLOR
-#endif 
-// Required to know whether vertex mode is being used.
-float bakeryLightmapMode;
+    // Colour is reserved by vertex LM.
+    #ifdef HAS_ATTRIBUTE_COLOR
+        #undef HAS_ATTRIBUTE_COLOR
+    #endif 
 
-// Set if vertex lightmaps can contain shadowmask.
-#if defined(SHADOWS_SHADOWMASK)
-#define USING_BAKERY_VERTEXLMMASK
+    // Required to know whether vertex mode is being used.
+    float bakeryLightmapMode;
+
+    // Set if vertex lightmaps can contain shadowmask.
+    #if defined(SHADOWS_SHADOWMASK)
+        #define USING_BAKERY_VERTEXLMMASK
+    #endif
+
+    // Set if vertex lightmaps can contain directionality.
+    #if defined(DIRLIGHTMAP_COMBINED)
+        #define USING_BAKERY_VERTEXLMDIR
+    #endif
+
+    // ...And if they use SH. 
+    #if defined(_BAKERY_SH)
+        #define USING_BAKERY_VERTEXLMSH
+            // UV3  is reserved by vertex LM SH.
+            #ifdef HAS_ATTRIBUTE_UV3
+            #undef HAS_ATTRIBUTE_UV3
+        #endif 
+    #endif
 #endif
 
-// Set if vertex lightmaps can contain directionality.
-#if defined(DIRLIGHTMAP_COMBINED)
-#define USING_BAKERY_VERTEXLMDIR
-// ...And if they use SH. 
-#if defined(_BAKERY_SH)
-#define USING_BAKERY_VERTEXLMSH
-// UV3  is reserved by vertex LM SH.
-#ifdef HAS_ATTRIBUTE_UV3
-#undef HAS_ATTRIBUTE_UV3
-#endif 
-#endif
-#endif
-
-#endif
 
 
 // Refraction source texture
