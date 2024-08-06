@@ -74,6 +74,9 @@
 #endif
 #if _ALPHABLEND_ON
 #define BLEND_MODE_FADE 
+// Workaround a bug where the blending premultiply step causes AO to apply
+// strange lighting. 
+#undef MULTI_BOUNCE_AMBIENT_OCCLUSION
 #endif
 #if _ALPHATEST_ON
 #define BLEND_MODE_MASKED 
