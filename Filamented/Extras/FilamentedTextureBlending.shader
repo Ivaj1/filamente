@@ -310,7 +310,7 @@ inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float4 tangentTo
  float3 i_posWorld, float4 i_color)
 {   
     // Blend weights in vertex colours
-    fixed4 weights = i_color;
+    fixed3 weights = i_color;
     #if defined(_SPLATMAP)
     // Blend weights in splat map
     weights = tex2D (_MainTex, i_tex.xy);
@@ -334,6 +334,8 @@ inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float4 tangentTo
 
     weights = saturate( pow(((blendMod*weights)*4) + (weights*2), _MaskStr) );
 
+    float baseLayerWeight = 1.0 - saturate(dot(weights, 1.0));
+
 #if defined(_DEBUG_VIEWWEIGHTS)
     MaterialInputs debugView = (MaterialInputs)0;
     initMaterial(debugView);
@@ -348,7 +350,7 @@ inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float4 tangentTo
     float4 m = 0;
 
 #if defined(_TRIPLANAR)
-    addLayerTriplanar(1.0, worldPosT, worldNormalT, _MainTexA_ST, 
+    addLayerTriplanar(baseLayerWeight, worldPosT, worldNormalT, _MainTexA_ST, 
         TEXTURE2D_ARGS(_MainTexA, sampler_MainTexR), c, 
         TEXTURE2D_ARGS(_BumpMapA, sampler_BumpMapR), n, 
         TEXTURE2D_ARGS(_MaskMapA, sampler_MaskMapR), m, 
@@ -369,7 +371,7 @@ inline MaterialInputs BlendedMaterialSetup (inout float4 i_tex, float4 tangentTo
         TEXTURE2D_ARGS(_MaskMapB, sampler_MaskMapR), m, 
         _PropertiesB);
 #else
-    addLayer(1.0, i_tex.xy, _MainTexA_ST, 
+    addLayer(baseLayerWeight, i_tex.xy, _MainTexA_ST, 
         TEXTURE2D_ARGS(_MainTexA, sampler_MainTexR), c, 
         TEXTURE2D_ARGS(_BumpMapA, sampler_BumpMapR), n, 
         TEXTURE2D_ARGS(_MaskMapA, sampler_MaskMapR), m, 
