@@ -118,12 +118,14 @@ UNITY_DECLARE_TEX2D_FLOAT(_DFG);
 #endif
 
 // Todo: Bakery seems to recommend disabling RNM when normal maps are not active. 
+#if defined(MATERIAL_HAS_NORMAL)
 #if defined(_BAKERY_RNM) || defined(_BAKERY_SH)
 // Set when Bakery-specific lightmap textures need to be read.
 #define USING_BAKERY
 UNITY_DECLARE_TEX2D_HALF(_RNM0);
 UNITY_DECLARE_TEX2D_HALF(_RNM1);
 UNITY_DECLARE_TEX2D_HALF(_RNM2);
+#endif
 #endif
 
 // For MonoSH, the extra textures aren't used. 
