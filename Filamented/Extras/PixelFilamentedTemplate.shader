@@ -8,6 +8,7 @@ Shader "Silent/Filamented Pixel Art"
 {
     Properties
     {
+        _Color("Color", Color) = (1,1,1,1)
         _MainTex("Albedo", 2D) = "white" {}
         [Normal] _BumpMap("Normal", 2D) = "bump" {}
         _BumpScale("Normal Scale", Float) = 1
@@ -99,6 +100,7 @@ Shader "Silent/Filamented Pixel Art"
     #include "Packages/s-ilent.filamented/Filamented/UnityStandardConfig.cginc"
     #include "Packages/s-ilent.filamented/Filamented/UnityStandardCore.cginc"
 
+    uniform half4 _Color;
 	uniform half _BumpScale;
 	uniform half _MetallicScale;
 	uniform half _OcclusionScale;
@@ -170,7 +172,6 @@ inline MaterialInputs MyMaterialSetup (inout float4 i_tex, float3 i_eyeVec, half
     half4 packedMap = SampleTexture2DPixelFiltering(TEXTURE2D_ARGS(_MOESMap, sampler_MOESMap), i_tex.xy, _MOESMap_TexelSize);
     half3 normalTangent = UnpackScaleNormal(SampleTexture2DPixelFiltering(TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap), i_tex.xy, _BumpMap_TexelSize), _BumpScale);
     
-
     #if defined(_ANIMATED)
     uint width, height, elements;
     _AnimationMainTex.GetDimensions(width, height, elements);
@@ -192,9 +193,6 @@ inline MaterialInputs MyMaterialSetup (inout float4 i_tex, float3 i_eyeVec, half
     baseColor = SampleTexture2DArrayPixelFiltering(TEXTURE2D_ARRAY_ARGS(_AnimationMainTex, sampler_AnimationMainTex), i_tex.xy, _AnimationMainTex_TexelSize, tex_index );
     #endif
 
-    // hack for Quake stuff, remove later
-    baseColor *= 3.0;
-
     half metallic = packedMap.x * _MetallicScale;
     half occlusion = lerp(1, packedMap.y, _OcclusionScale);
     half emissionMask = packedMap.z;
@@ -202,7 +200,7 @@ inline MaterialInputs MyMaterialSetup (inout float4 i_tex, float3 i_eyeVec, half
 
     MaterialInputs material = (MaterialInputs)0;
     initMaterial(material);
-    material.baseColor = baseColor;
+    material.baseColor = baseColor * _Color;
     material.metallic = metallic;
     material.roughness = computeRoughnessFromGlossiness(smoothness);
     material.normal = normalTangent;
