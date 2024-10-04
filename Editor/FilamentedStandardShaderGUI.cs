@@ -244,6 +244,9 @@ namespace SilentTools
         [GUIContent("Sheen", "Sheen colour (RGB) and glossiness (A) for cloth")]
         private MaterialProperty isCloth = null;
 
+        [MaterialProperty("_DFG")]
+        private MaterialProperty dfgLUT = null;
+
         [MaterialProperty("_Color")]
         MaterialProperty albedoColor = null;
         [MaterialProperty("_SpecGlossMap")]
@@ -361,6 +364,11 @@ namespace SilentTools
             EditorGUI.BeginChangeCheck();
             {
                 blendModeChanged = BlendModePopup();
+
+                if (dfgLUT.textureValue == null)
+                {
+                    EditorGUILayout.HelpBox("No texture is assigned to the DFG slot in the shader. This will cause the shader to render incorrecty. Please assign one of the DFG textures to the DFG slot in the shader.", MessageType.Error);
+                }
 
                 // Primary properties
                 GUILayout.Label(Styles.primaryMapsText, EditorStyles.boldLabel);
