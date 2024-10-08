@@ -8,27 +8,31 @@ Shader "Silent/Filamented Pixel Art"
 {
     Properties
     {
-        _Color("Color", Color) = (1,1,1,1)
-        _MainTex("Albedo", 2D) = "white" {}
-        [Normal] _BumpMap("Normal", 2D) = "bump" {}
-        _BumpScale("Normal Scale", Float) = 1
+        [CheckDFGTexture]
+        [BlendModeSelector(_SrcBlend, _DstBlend, _CustomRenderQueue, _ZWrite, _AtoCmode)] _Mode ("__mode", Float) = 0.0
+        [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
+        [HeaderEx(Base Material)]
+        [ScaleOffset][SingleLine(_Color)]_MainTex("Albedo", 2D) = "white" {}
+        [HideInInspector]_Color("Color", Color) = (1,1,1,1)
+        [SingleLine(_BumpScale)][Normal]_BumpMap("Normal", 2D) = "bump" {}
+        [HideInInspector]_BumpScale("Normal Scale", Float) = 1
+        [SingleLine]_MOESMap("MOES Map", 2D) = "white" {}
         [Space]
-        _MOESMap("MOES Map", 2D) = "white" {}
         _MetallicScale("Metallic", Range( 0 , 1)) = 0
         _OcclusionScale("Occlusion", Range( 0 , 1)) = 0
+        _Emission("Emission Power", Float) = 0
         _SmoothnessScale("Smoothness", Range( 0 , 1)) = 0
         [Space]
-        _Emission("Emission Power", Float) = 0
         _EmissionColor("Emission Color", Color) = (1,1,1,1)
-        [Header(Texture Animation)]
+        [HeaderEx(Texture Animation)]
         [Toggle(_ANIMATED)] _Animated ("Texture Animation", Float) = 0
-        _AnimationMainTex("Animated Albedo", 2DArray) = "white" {}
+        [NoScaleOffset]_AnimationMainTex("Animated Albedo", 2DArray) = "white" {}
         [Enum(PingPong, 0, Linear, 1)]_AnimationMode("Animation Mode",Float) = 0
         _AnimationSpeed("Animation Speed", Float) = 1.0
-        [Header(Animation)]
+        [HeaderEx(Animation)]
         [ToggleUI]_QuakeWater("Quake-style Distortion", Float) = 0
 
-        [Header(System)]
+        [HeaderEx(System)]
         [Space]
         [Toggle(_LIGHTMAPSPECULAR)]_LightmapSpecular("Lightmap Specular", Range(0, 1)) = 1
         _LightmapSpecularMaxSmoothness("Lightmap Specular Max Smoothness", Range(0, 1)) = 1
@@ -40,18 +44,18 @@ Shader "Silent/Filamented Pixel Art"
         [HideInInspector]_RNM2("RNM2", 2D) = "black" {}
         [Toggle(_LTCGI)] _LTCGI ("LTCGI", Int) = 0
         [Space]
-        [Enum(UnityEngine.Rendering.CullMode)]_CullMode("Cull Mode", Int) = 2
-        [Toggle(_ALPHATEST_ON)]_AtoCmode("Cutout Transparency", Float) = 0
         
-        [Enum(UnityEngine.Rendering.BlendMode)]_SrcBlend ("__src", Float) = 1
-        [Enum(UnityEngine.Rendering.BlendMode)]_DstBlend ("__dst", Float) = 0
-        [Enum(Off,0,On,1)]_ZWrite ("__zw", Float) = 1
-        [Enum(UnityEngine.Rendering.CullMode)] _CullMode ("Cull Mode", Float) = 2
+        [HideInInspector][Enum(UnityEngine.Rendering.BlendMode)]_SrcBlend ("__src", Float) = 1
+        [HideInInspector][Enum(UnityEngine.Rendering.BlendMode)]_DstBlend ("__dst", Float) = 0
+        [HideInInspector][Enum(Off,0,On,1)]_ZWrite ("__zw", Float) = 1
+        [HideInInspector]_AtoCmode("Cutout Transparency", Float) = 0
 
         [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
     }
 
     CGINCLUDE
+        #pragma shader_feature_local _ANIMATED
+
     	// First, setup what Filamented does. 
     	// Filamented's behaviour is decided by the shading model and what material properties are defined.
     	// These are listed in FilamentMaterialInputs.
@@ -112,6 +116,7 @@ Shader "Silent/Filamented Pixel Art"
     TEXTURE2D(_MOESMap); SAMPLER(sampler_MOESMap); half4 _MOESMap_TexelSize;
     TEXTURE2D(_BumpMap); SAMPLER(sampler_BumpMap); half4 _BumpMap_TexelSize;
 
+    half4 _MainTex_ST;
     
     #if defined(_ANIMATED)
     TEXTURE2D_ARRAY(_AnimationMainTex); SAMPLER(sampler_AnimationMainTex); half4 _AnimationMainTex_TexelSize;
@@ -161,6 +166,7 @@ Shader "Silent/Filamented Pixel Art"
 	// The material function itself!  You can alter the code below to add extra properties. 
 inline MaterialInputs MyMaterialSetup (inout float4 i_tex, float3 i_eyeVec, half3 i_viewDirForParallax, float4 tangentToWorld[3], float3 i_posWorld)
 {   
+    i_tex.xy = i_tex * _MainTex_ST.xy + _MainTex_ST.zw;
     // Animation stuff first.
     if (_QuakeWater) 
     {
@@ -312,7 +318,7 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             
             #pragma shader_feature_local _ _BAKERY_RNM _BAKERY_SH _BAKERY_MONOSH
             #pragma shader_feature_local _LTCGI
-            #pragma shader_feature_local _ANIMATED
+            #pragma shader_feature_local _LIGHTMAPSPECULAR
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog
@@ -347,8 +353,6 @@ half4 fragAdd (VertexOutputForwardAdd i) : SV_Target { return fragForwardAddTemp
             #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             
-            #pragma shader_feature_local _ANIMATED
-
             #pragma multi_compile_fwdadd_fullshadows
             #pragma multi_compile_fog
             // Uncomment the following line to enable dithering LOD crossfade. Note: there are more in the file to uncomment for other passes.
