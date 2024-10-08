@@ -4,7 +4,7 @@ It uses the same techniques as my Pixel Standard shader, but adapted for
 Filamented. 
 https://gitlab.com/s-ilent/pixelstandard
 */ 
-Shader "Silent/Filamented Pixel Art"
+Shader "Silent/Filamented Extras/Pixel Art Filamented"
 {
     Properties
     {
@@ -52,6 +52,8 @@ Shader "Silent/Filamented Pixel Art"
 
         [NonModifiableTextureData][HideInInspector] _DFG("DFG", 2D) = "white" {}
     }
+    
+    CustomEditor "Silent.FilamentedExtras.Unity.FilamentedExtrasInspector"
 
     CGINCLUDE
         #pragma shader_feature_local _ANIMATED

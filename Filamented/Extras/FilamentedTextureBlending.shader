@@ -3,7 +3,7 @@ Filamented texture blending sample.
 This is designed to be used as-is in existing projects, but
 experienced users may wish to modify how the shader functions.
 */ 
-Shader "Silent/Filamented Extras/Filamented Texture Blending"
+Shader "Silent/Filamented Extras/Texture Blending Filamented"
 {
     Properties
     {

@@ -1,7 +1,7 @@
 /*
 Filamented triplanar example.
 */ 
-Shader "Silent/Filamented Extras/Simple Triplanar Filamented"
+Shader "Silent/Filamented Extras/Simple Lazy Triplanar Filamented"
 {
     Properties
     {
