@@ -253,24 +253,35 @@ namespace Silent.FilamentedExtras.Unity
 			var oldLabelWidth = EditorGUIUtility.labelWidth;
 			EditorGUIUtility.labelWidth = 0f;
 			s_drawing = true;
-			try
-			{
-				EditorGUI.BeginChangeCheck();
-				if (string.IsNullOrEmpty(_extraPropName))
-				{
-					editor.TexturePropertySingleLine(label, prop);
-				}
-				else
-				{
-					var extraProp = MaterialEditor.GetMaterialProperty(prop.targets, _extraPropName);
-					var additionalProp = MaterialEditor.GetMaterialProperty(prop.targets, _additionalPropName);
-					if (extraProp.type == MaterialProperty.PropType.Color && (extraProp.flags & MaterialProperty.PropFlags.HDR) > 0)
-						editor.TexturePropertyWithHDRColor(label, prop, extraProp, false);
-					else
-						editor.TexturePropertySingleLine(label, prop, extraProp, additionalProp);
-				}
-				EditorGUI.EndChangeCheck();
+        try
+        {
+            EditorGUI.BeginChangeCheck();
+
+            if (string.IsNullOrEmpty(_extraPropName))
+            {
+                editor.TexturePropertySingleLine(label, prop);
+            }
+            else
+            {
+                var extraProp = MaterialEditor.GetMaterialProperty(prop.targets, _extraPropName);
+
+                if (extraProp != null && extraProp.type == MaterialProperty.PropType.Color && (extraProp.flags & MaterialProperty.PropFlags.HDR) > 0)
+                {
+                    editor.TexturePropertyWithHDRColor(label, prop, extraProp, false);
+                }
+                else if (string.IsNullOrEmpty(_additionalPropName))
+                {
+                    editor.TexturePropertySingleLine(label, prop, extraProp);
+                }
+                else
+                {
+                    var additionalProp = MaterialEditor.GetMaterialProperty(prop.targets, _additionalPropName);
+                    editor.TexturePropertySingleLine(label, prop, extraProp, additionalProp);
+                }
 			}
+			
+            EditorGUI.EndChangeCheck();
+            }
 			finally
 			{
 				s_drawing = false;
