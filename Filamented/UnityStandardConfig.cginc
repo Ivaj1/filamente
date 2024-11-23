@@ -35,6 +35,19 @@
 #define USE_UNITY_STANDARD_INPUT_DEFINES
 #endif
 
+// Whether to sample all bands of SH in the fragment shader.
+// Otherwise, L2 SH for light probes is sampled in the vertex shader. 
+// When this is disabled, L2 SH will be calculated in the vertex shader and
+// added to the final light probe result. For base Unity, this is a good optimization.
+// However, Filamented adds newer techniques for sampling Unity's L1 SH which
+// produce a higher quality result, and adding the L2 contribution over them 
+// causes artifacts. In this case, it makes more sense to disable this optimization
+// and skip reading the L2 SH entirely. 
+// You can adjust the technique used to sample the light probes in FilamentLightIndirect.cginc.
+#ifndef UNITY_SAMPLE_FULL_SH_PER_PIXEL
+#define UNITY_SAMPLE_FULL_SH_PER_PIXEL 1
+#endif
+
 // Whether to read the _DFG texture for DFG instead of the approximate one. 
 // The shader must have a _DFG texture property, so don't enable this here.
 // For example, you can use this ShaderLab semantic to specify a DFG texture.
@@ -163,8 +176,6 @@ UNITY_DECLARE_TEX2D_HALF(_RNM2);
         #endif 
     #endif
 #endif
-
-
 
 // Refraction source texture
 #if REFRACTION_MODE == REFRACTION_MODE_SCREEN

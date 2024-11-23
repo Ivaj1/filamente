@@ -14,12 +14,20 @@
 // Image based lighting configuration
 //------------------------------------------------------------------------------
 
-// Whether to use Geometrics' deringing lightprobe sampling.
+// Spherical harmonics sampling algorithm
+// Unity's default; basic SH sampling
 #define SPHERICAL_HARMONICS_DEFAULT         0
+// Geometrics' deringing lightprobe sampling
 #define SPHERICAL_HARMONICS_GEOMETRICS      1
+// Quadratic Zonal Harmonics
 #define SPHERICAL_HARMONICS_ZH3             2
 
 #define SPHERICAL_HARMONICS SPHERICAL_HARMONICS_ZH3
+
+// Whether spherical harmonics sampling applies the L2 contribution.
+// If using Geometrics and ZH3, it is recommended to set this to 0 (disabled),
+// as L2 SH is balanced for adding to basic SH sampling, which can cause ringing artifacts.
+#define SPHERICAL_HARMONICS_USE_L2          0
 
 // IBL integration algorithm
 #define IBL_INTEGRATION_PREFILTERED_CUBEMAP         0
@@ -226,28 +234,31 @@ float3 SHEvalLinearL0L1_ZH3Hallucinate_LumAxis(float3 direction)
 
 float3 Irradiance_SphericalHarmonics(const float3 n, const bool useL2) {
     // Uses Unity's functions for reading SH. 
-    // However, this function is currently unused. 
     float3 finalSH = float3(0,0,0); 
-        #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_DEFAULT)
-            finalSH = SHEvalLinearL0L1(half4(n, 1.0));
-            if (useL2) finalSH += SHEvalLinearL2(half4(n, 1.0));
-        #endif
 
-        #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_GEOMETRICS)
-            float3 L0 = float3(unity_SHAr.w, unity_SHAg.w, unity_SHAb.w);
-            float3 L0L2 = float3(unity_SHBr.z, unity_SHBg.z, unity_SHBb.z) / 3.0;
-            L0 = (useL2) ? L0+L0L2 : L0-L0L2;
-            finalSH.r = shEvaluateDiffuseL1Geomerics_local(L0.r, unity_SHAr.xyz, n);
-            finalSH.g = shEvaluateDiffuseL1Geomerics_local(L0.g, unity_SHAg.xyz, n);
-            finalSH.b = shEvaluateDiffuseL1Geomerics_local(L0.b, unity_SHAb.xyz, n);
-            // Quadratic polynomials
-            if (useL2) finalSH += SHEvalLinearL2 (float4(n, 1));
-        #endif
+    #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_DEFAULT)
+        finalSH = SHEvalLinearL0L1(half4(n, 1.0));
+    #endif
 
-        #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_ZH3)
-            finalSH = SHEvalLinearL0L1_ZH3Hallucinate(half4(n, 1.0));
-            if (useL2) finalSH += SHEvalLinearL2(half4(n, 1.0));
-        #endif
+    #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_GEOMETRICS)
+        float3 L0 = float3(unity_SHAr.w, unity_SHAg.w, unity_SHAb.w);
+        float3 L0L2 = float3(unity_SHBr.z, unity_SHBg.z, unity_SHBb.z) / 3.0;
+        L0 = (useL2) ? L0+L0L2 : L0-L0L2;
+        finalSH.r = shEvaluateDiffuseL1Geomerics_local(L0.r, unity_SHAr.xyz, n);
+        finalSH.g = shEvaluateDiffuseL1Geomerics_local(L0.g, unity_SHAg.xyz, n);
+        finalSH.b = shEvaluateDiffuseL1Geomerics_local(L0.b, unity_SHAb.xyz, n);
+        // Quadratic polynomials
+    #endif
+
+    #if (SPHERICAL_HARMONICS == SPHERICAL_HARMONICS_ZH3)
+        finalSH = SHEvalLinearL0L1_ZH3Hallucinate(half4(n, 1.0));
+    #endif
+
+    // L2 contribution. 
+    // Note that if UNITY_SAMPLE_FULL_SH_PER_PIXEL is not set, L2 will not be added here!
+    #if (SPHERICAL_HARMONICS_USE_L2 == 1)
+        if (useL2) finalSH += SHEvalLinearL2(half4(n, 1.0));
+    #endif    
 
     return finalSH;
 }
