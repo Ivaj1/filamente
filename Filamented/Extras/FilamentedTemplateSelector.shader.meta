@@ -1,12 +1,14 @@
 fileFormatVersion: 2
-guid: 2dfcee83c1697d34db26ab4c73ff85d1
+guid: 5835b3b76534b964c8b4b6f41edd479f
 ShaderImporter:
   externalObjects: {}
   defaultTextures:
   - _MainTex: {instanceID: 0}
   - _BumpMap: {instanceID: 0}
   - _MOESMap: {instanceID: 0}
-  - _AnimationMainTex: {instanceID: 0}
+  - _MainTexDetail: {instanceID: 0}
+  - _BumpMapDetail: {instanceID: 0}
+  - _MOESMapDetail: {instanceID: 0}
   - _RNM0: {instanceID: 0}
   - _RNM1: {instanceID: 0}
   - _RNM2: {instanceID: 0}
